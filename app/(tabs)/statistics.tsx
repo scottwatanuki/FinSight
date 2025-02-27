@@ -7,11 +7,18 @@ const budgets = [
     { category: "Bills", amount: 1082.11, limit: 3000, icon: "calendar" as IconSymbolName },
     { category: "Food", amount: 98.04, limit: 200, icon: "fork.knife" as IconSymbolName },
     { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
+    { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
+    { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
+    { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
+    { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
   ];
   
   const history = [
     { name: "Chick-fil-a", amount: 12.58, date: "February 10, 2025" },
     { name: "Nike", amount: 87.09, date: "February 8, 2025" },
+    { name: "Sephora", amount: 34.16, date: "February 7, 2025" },
+    { name: "Sephora", amount: 34.16, date: "February 7, 2025" },
+    { name: "Sephora", amount: 34.16, date: "February 7, 2025" },
     { name: "Sephora", amount: 34.16, date: "February 7, 2025" },
   ];
   
@@ -31,6 +38,18 @@ const budgets = [
             </View>
           ))}
         </ScrollView>
+        <Text style={styles.subtitle}>History</Text>
+        <ScrollView contentContainerStyle={styles.scrollViewColumn}>
+            {history.map((item, index) => (
+            <View key={index} style={styles.historyCard}>
+                <View style={styles.historyTextContainer}>
+                <Text style={styles.historyName}>{item.name}</Text>
+                <Text style={styles.historyDate}>{item.date}</Text>
+                </View>
+                <Text style={styles.historyAmount}>${item.amount}</Text>
+            </View>
+            ))}
+        </ScrollView>
       </View>
     );
   }
@@ -40,6 +59,11 @@ const budgets = [
       flex: 1,
       backgroundColor: "#ffffff",
       padding: 16,
+      paddingHorizontal: 16,
+    },
+    scrollViewColumn: {
+      flexDirection: "column",
+      paddingHorizontal: 16,
     },
     title: {
       fontSize: 24,
@@ -51,11 +75,18 @@ const budgets = [
       fontSize: 24,
       fontWeight: "bold",
       marginVertical: 8,
+      paddingHorizontal: 16,
+    },
+    historySubtitle: {
+        marginTop: 16, // Reduce the top margin to make the space less
     },
     scrollView: {
       flexDirection: "row",
       flexWrap: "wrap",
       justifyContent: "space-between",
+      marginBottom: 8,
+      maxHeight: 460,
+      paddingHorizontal: 16,
     },
     card: {
       backgroundColor: "#f8f7fc",
@@ -80,6 +111,35 @@ const budgets = [
     },
     limit: {
       fontSize: 14,
-      fontWeight: "normal", // Ensure the limit text is not bold
+      fontWeight: "normal", 
     },
+    historyCard: {
+        backgroundColor: "#ffffff",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+        marginVertical: 8,
+        borderRadius: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+      },
+      historyTextContainer: {
+        flexDirection: "column",
+      },
+      historyName: {
+        fontSize: 18,
+        fontWeight: "bold",
+      },
+      historyDate: {
+        fontSize: 14,
+        color: "#939393",
+      },
+      historyAmount: {
+        fontSize: 20,
+        fontWeight: "bold",
+      },
   });
