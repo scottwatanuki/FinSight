@@ -21,7 +21,6 @@ const history = [
     { name: "Sephora", amount: 34.16, date: "February 7, 2025" },
     { name: "Amazon", amount: 45.12, date: "February 5, 2025" },
     { name: "Salad Bar", amount: 9.99, date: "February 4, 2025" },
-    { name: "Walmart", amount: 23.45, date: "February 3, 2025" },
 ];
 
 export default function Statistics() {
@@ -51,6 +50,22 @@ export default function Statistics() {
     toggleModal();
   };
 
+  const getFilteredBudgets = () => {
+    // Transform or filter budgets based on the selected view
+    switch (view) {
+      case "Daily":
+        return budgets.map(budget => ({ ...budget, amount: budget.amount / 30, limit: budget.limit / 30 }));
+      case "Weekly":
+        return budgets.map(budget => ({ ...budget, amount: budget.amount / 4, limit: budget.limit / 4 }));
+      case "Monthly":
+        return budgets;
+      case "Yearly":
+        return budgets.map(budget => ({ ...budget, amount: budget.amount * 12, limit: budget.limit * 12}));
+      default:
+        return budgets;
+    }
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -76,14 +91,14 @@ export default function Statistics() {
         />
       </View>
       <ScrollView contentContainerStyle={styles.scrollView}>
-        {budgets.map((budget, index) => (
+        {getFilteredBudgets().map((budget, index) => (
           <View key={index} style={styles.card}>
             <IconSymbol size={28} name={budget.icon} color="#9e9ded" />
             <Text style={styles.category}>{budget.category}</Text>
-            <Text style={styles.amount}>
-              ${budget.amount}
-              <Text style={styles.limit}> of ${budget.limit}</Text>
-            </Text>
+            <View style={styles.amountContainer}>
+                <Text style={styles.amount}>${budget.amount.toFixed(2)}</Text>
+                <Text style={styles.limit}>of ${budget.limit.toFixed(2)}</Text>
+              </View>
           </View>
         ))}
       </ScrollView>
@@ -222,6 +237,8 @@ const styles = StyleSheet.create({
       limit: {
         fontSize: 14,
         fontWeight: "normal", 
+        color: "#939393",
+        marginVertical: 2,
       },
       historyCard: {
           backgroundColor: "#ffffff",
@@ -332,5 +349,10 @@ const styles = StyleSheet.create({
           budgetDropdown: {
             width: 100, // Adjust the width as needed
           },
-
+          amountContainer: {
+            alignItems: "center",
+            color: "#939393",
+            fontSize: 14,
+            marginVertical: 2,
+          },
 });
