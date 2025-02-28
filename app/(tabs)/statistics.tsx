@@ -32,6 +32,8 @@ export default function Statistics() {
 
   const [categoryOpen, setCategoryOpen] = useState(false);
   const [frequencyOpen, setFrequencyOpen] = useState(false);
+  const [view, setView] = useState("Daily");
+  const [viewOpen, setViewOpen] = useState(false);
 
   const toggleModal = () => {
     setCategoryOpen(false);
@@ -53,9 +55,25 @@ export default function Statistics() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.subtitle}>Budgets</Text>
-        <TouchableOpacity onPress={toggleModal}>
+        <TouchableOpacity style={styles.budgetDropdown} onPress={toggleModal}>
           <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
         </TouchableOpacity>
+        <DropDownPicker
+          open={viewOpen}
+          value={view}
+          items={[
+            { label: "Daily", value: "Daily" },
+            { label: "Weekly", value: "Weekly" },
+            { label: "Monthly", value: "Monthly" },
+            { label: "Yearly", value: "Yearly" },
+          ]}
+          setOpen={setViewOpen}
+          setValue={setView}
+          style={styles.viewDropdown}
+          textStyle={styles.viewDropdownText}
+          dropDownContainerStyle={styles.viewDropdownContainer}
+          containerStyle={styles.viewDropdownContainerStyle}
+        />
       </View>
       <ScrollView contentContainerStyle={styles.scrollView}>
         {budgets.map((budget, index) => (
@@ -295,4 +313,24 @@ const styles = StyleSheet.create({
             fontWeight: "bold",
             fontSize: 18,
           },
+          viewDropdown: {
+            borderWidth: 0, // No border
+            backgroundColor: "transparent", // Transparent background
+            paddingRight: 20,
+          },
+          viewDropdownText: {
+            color: "#3C3ADD", // Purple text color
+            fontWeight: "bold",
+            textAlign: "right",
+          },
+          viewDropdownContainer: {
+            borderWidth: 0, // No border for the dropdown container
+          },
+          viewDropdownContainerStyle: {
+            width: 150, // Adjust the width as needed
+          },
+          budgetDropdown: {
+            width: 100, // Adjust the width as needed
+          },
+
 });
