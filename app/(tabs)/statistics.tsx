@@ -4,6 +4,7 @@ import Modal from "react-native-modal";
 import DropDownPicker from "react-native-dropdown-picker";
 import { IconSymbol, IconSymbolName } from '@/components/ui/IconSymbol';
 
+// hardcoded budgets
 const budgets = [
   { category: "Shopping", amount: 112.38, limit: 200, icon: "cart.fill" as IconSymbolName },
   { category: "Bills", amount: 1082.11, limit: 3000, icon: "calendar" as IconSymbolName },
@@ -15,6 +16,7 @@ const budgets = [
   { category: "Health", amount: 52.76, limit: 100, icon: "heart.text.clipboard.fill" as IconSymbolName },
 ];
 
+// hardcoded transaction history
 const history = [
     { name: "Chick-fil-a", amount: 12.58, date: "February 10, 2025" },
     { name: "Nike", amount: 87.09, date: "February 8, 2025" },
@@ -177,43 +179,35 @@ const styles = StyleSheet.create({
         padding: 16,
         paddingHorizontal: 16,
         overflow: "hidden",
-      },
-      budgetsContainer: {
-        maxHeight: 200, // Set a fixed height for the budgets container
-        overflow: "hidden",
-      },
-      historyContainer: {
-        maxHeight: 200, // Set a fixed height for the history container
-        overflow: "hidden",
-      },
-      scrollViewColumn: {
+    },
+    scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
-      },
-      title: {
+    },
+    title: {
         fontSize: 24,
         fontWeight: "bold",
         textAlign: "center",
         marginVertical: 8,
-      },
-      subtitle: {
+    },
+    subtitle: {
         fontSize: 24,
         fontWeight: "bold",
         marginVertical: 8,
         paddingHorizontal: 16,
-      },
-      historySubtitle: {
-          marginTop: 16, // Reduce the top margin to make the space less
-      },
-      scrollView: {
+    },
+    historySubtitle: {
+        marginTop: 16, 
+    },
+    scrollView: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
         marginBottom: 8,
         maxHeight: 460,
         paddingHorizontal: 16,
-      },
-      card: {
+    },
+    card: {
         backgroundColor: "#f8f7fc",
         width: "48%",
         aspectRatio: 1,
@@ -222,137 +216,135 @@ const styles = StyleSheet.create({
         marginVertical: 8,
         alignItems: "center",
         justifyContent: "center",
-      },
-      category: {
+    },
+    category: {
         fontSize: 16,
         fontWeight: "bold",
         marginVertical: 4,
-      },
-      amount: {
-          color: "#939393",
+    },
+    amount: {
+        color: "#939393",
         fontSize: 14,
         marginVertical: 2,
         fontWeight: "bold",
-      },
-      limit: {
+    },
+    limit: {
         fontSize: 14,
         fontWeight: "normal", 
         color: "#939393",
         marginVertical: 2,
-      },
-      historyCard: {
-          backgroundColor: "#ffffff",
-          flexDirection: "row",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: 16,
-          marginVertical: 8,
-          borderRadius: 8,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 3,
-        },
-        historyTextContainer: {
-          flexDirection: "column",
-        },
-        historyName: {
-          fontSize: 18,
-          fontWeight: "bold",
-        },
-        historyDate: {
-          fontSize: 14,
-          color: "#939393",
-        },
-        historyAmount: {
-          fontSize: 20,
-          fontWeight: "bold",
-        },
-        modalContent: {
-            backgroundColor: "white",
-            padding: 20,
-            borderRadius: 10,
-        },
-        modalTitle: {
-            fontSize: 20,
-            fontWeight: "bold",
-            marginBottom: 20,
-            justifyContent: "center",
-            textAlign: "center",
-        },
-        input: {
-            borderWidth: 1,
-            borderColor: "#ccc",
-            padding: 10,
-            marginBottom: 10,
-            borderRadius: 5,
-            width: '100%',
-            height: 50,
-        },
-        dropdown: {
-            borderWidth: 1,
-            borderColor: "#ccc",
-            marginBottom: 10,
-            borderRadius: 5,
-            width: '100%',
-            
-          },
-          dropdownContainer: {
-            marginBottom: 10,
-            width: '100%',
-            height: 60,
-          },
-          closeButton: {
-            position: "absolute",
-            top: 20,
-            right: 20,
-          },
-          addButton: {
-            backgroundColor: "#3C3ADD",
-            borderWidth: 1,
-            borderColor: "#3C3ADD",
-            borderRadius: 8,
-            marginTop: 30,
-            padding: 13,
-            alignItems: "center",
-            shadowColor: "#000",
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.2,
-            shadowRadius: 4,
-            elevation: 3,
-            width: 200,
-            alignSelf: "center",
-            
-          },
-          addButtonText: {
-            color: "#fff",
-            fontWeight: "bold",
-            fontSize: 18,
-          },
-          viewDropdown: {
-            borderWidth: 0, // No border
-            backgroundColor: "transparent", // Transparent background
-            paddingRight: 20,
-          },
-          viewDropdownText: {
-            color: "#3C3ADD", // Purple text color
-            fontWeight: "bold",
-            textAlign: "right",
-          },
-          viewDropdownContainer: {
-            borderWidth: 0, // No border for the dropdown container
-          },
-          viewDropdownContainerStyle: {
-            width: 150, // Adjust the width as needed
-          },
-          budgetDropdown: {
-            width: 100, // Adjust the width as needed
-          },
-          amountContainer: {
-            alignItems: "center",
-            color: "#939393",
-            fontSize: 14,
-            marginVertical: 2,
-          },
+    },
+    historyCard: {
+        backgroundColor: "#ffffff",
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: 16,
+        marginVertical: 8,
+        borderRadius: 8,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    historyTextContainer: {
+        flexDirection: "column",
+    },
+    historyName: {
+        fontSize: 18,
+        fontWeight: "bold",
+    },
+    historyDate: {
+        fontSize: 14,
+        color: "#939393",
+    },
+    historyAmount: {
+        fontSize: 20,
+        fontWeight: "bold",
+    },
+    modalContent: {
+        backgroundColor: "white",
+        padding: 20,
+        borderRadius: 10,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 20,
+        justifyContent: "center",
+        textAlign: "center",
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 5,
+        width: '100%',
+        height: 50,
+    },
+    dropdown: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        marginBottom: 10,
+        borderRadius: 5,
+        width: '100%',
+    },
+    dropdownContainer: {
+        marginBottom: 10,
+        width: '100%',
+        height: 60,
+    },
+    closeButton: {
+        position: "absolute",
+        top: 20,
+        right: 20,
+    },
+    addButton: {
+        backgroundColor: "#3C3ADD",
+        borderWidth: 1,
+        borderColor: "#3C3ADD",
+        borderRadius: 8,
+        marginTop: 30,
+        padding: 13,
+        alignItems: "center",
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.2,
+        shadowRadius: 4,
+        elevation: 3,
+        width: 200,
+        alignSelf: "center",
+    },
+    addButtonText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 18,
+    },
+    viewDropdown: {
+        borderWidth: 0, 
+        backgroundColor: "transparent", 
+        paddingRight: 20,
+    },
+    viewDropdownText: {
+        color: "#3C3ADD",
+        fontWeight: "bold",
+        textAlign: "right",
+    },
+    viewDropdownContainer: {
+        borderWidth: 0, 
+    },
+    viewDropdownContainerStyle: {
+        width: 150, 
+    },
+    budgetDropdown: {
+        width: 100, 
+    },
+    amountContainer: {
+        alignItems: "center",
+        color: "#939393",
+        fontSize: 14,
+        marginVertical: 2,
+    },
 });
