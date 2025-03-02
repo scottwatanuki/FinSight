@@ -1,6 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore, doc, getDoc } from "firebase/firestore";
-import firestore from "@react-native-firebase/firestore";
+// import firestore from "@react-native-firebase/firestore";
 
 // Firebase configuration
 const firebaseConfig = {
