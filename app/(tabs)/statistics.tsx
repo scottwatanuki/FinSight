@@ -27,10 +27,10 @@ const userID = "taylor_userid";
 
 export default function Statistics() {
     const iconDict: { [key: string]: IconSymbolName } = {
-        Shopping: "cart.fill",
-        Bills: "calendar",
-        Food: "fork.knife",
-        Health: "heart.text.clipboard.fill",
+        shopping: "cart.fill",
+        bills: "calendar",
+        food: "fork.knife",
+        health: "heart.text.clipboard.fill",
     };
     const [isModalVisible, setModalVisible] = useState(false);
     const [category, setCategory] = useState("Shopping");
@@ -61,7 +61,7 @@ export default function Statistics() {
                         category: key,
                         amount: spendingPerCategory[key]["total"] || 0,
                         limit: userBudgets[key] || 0,
-                        icon: iconDict[key] || "null",
+                        icon: iconDict[key] as IconSymbolName|| "null",
                     }));
 
                     setBudgets(newBudgets);
@@ -94,6 +94,9 @@ export default function Statistics() {
     const toggleModal = () => {
         setCategoryOpen(false);
         setFrequencyOpen(false);
+        setCategory("");
+        setFrequency("");
+        setAmount("");
         setModalVisible(!isModalVisible);
     };
 
@@ -162,7 +165,7 @@ export default function Statistics() {
                     containerStyle={styles.viewDropdownContainerStyle}
                 />
             </View>
-            <ScrollView contentContainerStyle={styles.scrollView}>
+            <ScrollView contentContainerStyle={styles.scrollView} style={styles.fixedScrollView}>
                 {getFilteredBudgets().map((budget, index) => (
                     <View key={index} style={styles.card}>
                         <IconSymbol
@@ -192,7 +195,7 @@ export default function Statistics() {
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
                         </View>
-                        <Text style={styles.historyAmount}>${item.amount}</Text>
+                        <Text style={styles.historyAmount}>${item.amount.toFixed(2)}</Text>
                     </View>
                 ))}
             </ScrollView>
@@ -218,6 +221,10 @@ export default function Statistics() {
                         setOpen={setCategoryOpen}
                         setValue={setCategory}
                         style={styles.dropdown}
+                        placeholder="Category"
+                        placeholderStyle={{
+                            color: 'grey', 
+                        }}
                         containerStyle={[
                             styles.dropdownContainer,
                             { zIndex: 1000 },
@@ -235,14 +242,19 @@ export default function Statistics() {
                         setOpen={setFrequencyOpen}
                         setValue={setFrequency}
                         style={styles.dropdown}
+                        placeholder="Frequency"
+                        placeholderStyle={{
+                            color: 'grey', 
+                        }}
                         containerStyle={[
                             styles.dropdownContainer,
                             { zIndex: 500 },
-                        ]} // Ensure the dropdown is on top
+                        ]} 
                     />
                     <TextInput
                         style={styles.input}
                         placeholder="Amount"
+                        placeholderTextColor="grey" 
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType="numeric"
@@ -263,7 +275,7 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-        marginBottom: 16,
+
     },
     container: {
         flex: 1,
@@ -275,6 +287,7 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
+        paddingBottom: 70,
     },
     title: {
         fontSize: 24,
@@ -295,8 +308,7 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginBottom: 8,
-        maxHeight: 460,
+        marginBottom: 160,
         paddingHorizontal: 16,
     },
     card: {
@@ -304,7 +316,7 @@ const styles = StyleSheet.create({
         width: "48%",
         aspectRatio: 1,
         borderRadius: 8,
-        padding: 16,
+        padding: 8,
         marginVertical: 8,
         alignItems: "center",
         justifyContent: "center",
@@ -367,6 +379,12 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         textAlign: "center",
     },
+    label: {
+        color: "#333", // Darker color for the label
+        fontSize: 16,
+        fontWeight: "bold",
+        marginBottom: 5,
+      },
     input: {
         borderWidth: 1,
         borderColor: "#ccc",
