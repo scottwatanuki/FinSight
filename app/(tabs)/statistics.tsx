@@ -17,6 +17,7 @@ import {
     fetchSpendingPerCategory,
     fetchTransactions,
 } from "../backend/fetchData";
+import { setBudget } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 
 const monthStartDate = Timestamp.fromDate(new Date("2025-02-01"));
@@ -41,8 +42,8 @@ export default function Statistics() {
     const [frequencyOpen, setFrequencyOpen] = useState(false);
     const [view, setView] = useState("Daily");
     const [viewOpen, setViewOpen] = useState(false);
-    const [budgets, setBudgets] = useState([]);
-    const [history, setHistory] = useState([]);
+    const [budgets, setBudgets] = useState<any[]>([]);
+    const [history, setHistory] = useState<any[]>([]);
 
     useEffect(() => {
         const fetchBudgets = async () => {
@@ -61,7 +62,7 @@ export default function Statistics() {
                         category: key,
                         amount: spendingPerCategory[key]["total"] || 0,
                         limit: userBudgets[key] || 0,
-                        icon: iconDict[key] as IconSymbolName|| "null",
+                        icon: (iconDict[key] as IconSymbolName) || "null",
                     }));
 
                     setBudgets(newBudgets);
@@ -101,7 +102,12 @@ export default function Statistics() {
     };
 
     const handleAddBudget = () => {
-        // Handle adding the budget here
+        const budgetData = {
+            category: category,
+            amount: amount,
+            frequency: frequency,
+        };
+        setBudget(budgetData, userID);
         console.log({ category, frequency, amount });
         // Reset the form fields
         setCategory("");
@@ -165,7 +171,10 @@ export default function Statistics() {
                     containerStyle={styles.viewDropdownContainerStyle}
                 />
             </View>
-            <ScrollView contentContainerStyle={styles.scrollView} style={styles.fixedScrollView}>
+            <ScrollView
+                contentContainerStyle={styles.scrollView}
+                style={styles.fixedScrollView}
+            >
                 {getFilteredBudgets().map((budget, index) => (
                     <View key={index} style={styles.card}>
                         <IconSymbol
@@ -195,7 +204,9 @@ export default function Statistics() {
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
                         </View>
-                        <Text style={styles.historyAmount}>${item.amount.toFixed(2)}</Text>
+                        <Text style={styles.historyAmount}>
+                            ${item.amount.toFixed(2)}
+                        </Text>
                     </View>
                 ))}
             </ScrollView>
@@ -223,7 +234,7 @@ export default function Statistics() {
                         style={styles.dropdown}
                         placeholder="Category"
                         placeholderStyle={{
-                            color: 'grey', 
+                            color: "grey",
                         }}
                         containerStyle={[
                             styles.dropdownContainer,
@@ -244,17 +255,17 @@ export default function Statistics() {
                         style={styles.dropdown}
                         placeholder="Frequency"
                         placeholderStyle={{
-                            color: 'grey', 
+                            color: "grey",
                         }}
                         containerStyle={[
                             styles.dropdownContainer,
                             { zIndex: 500 },
-                        ]} 
+                        ]}
                     />
                     <TextInput
                         style={styles.input}
                         placeholder="Amount"
-                        placeholderTextColor="grey" 
+                        placeholderTextColor="grey"
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType="numeric"
@@ -275,7 +286,6 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: "row",
         alignItems: "center",
-
     },
     container: {
         flex: 1,
@@ -384,7 +394,7 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: "bold",
         marginBottom: 5,
-      },
+    },
     input: {
         borderWidth: 1,
         borderColor: "#ccc",
