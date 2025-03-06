@@ -1,15 +1,12 @@
 import React from "react";
 import { View, Text, StyleSheet, SafeAreaView } from "react-native";
-import { useAuth } from "../context/AuthContext";
 
-export default function HomeTab() {
-  const { user } = useAuth();
-
+export default function TransactionsTab() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Home Screen</Text>
-        <Text style={styles.subtitle}>Welcome to FinSight</Text>
+        <Text style={styles.title}>Transactions</Text>
+        <Text style={styles.subtitle}>Your transaction history</Text>
       </View>
     </SafeAreaView>
   );
