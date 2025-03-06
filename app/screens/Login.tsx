@@ -1,3 +1,4 @@
+// app/screens/Login.tsx
 import React, { useState } from "react";
 import {
   View,
@@ -7,9 +8,11 @@ import {
   Alert,
   StyleSheet,
   SafeAreaView,
+  ActivityIndicator,
 } from "react-native";
 import { loginUser } from "../services/auth";
 import { useRouter } from "expo-router";
+import userInitialization from "../services/userInitialization";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,20 +29,31 @@ export default function Login() {
     setLoading(true);
     try {
       const result = await loginUser(email, password);
-      setLoading(false);
 
       if (result.success) {
+        // Initialize user data after successful login
+        try {
+          await userInitialization.initializeUserIfNeeded(
+            result.user.uid,
+            result.user.email
+          );
+        } catch (error) {
+          console.error("Error initializing user data:", error);
+          // Continue with navigation even if initialization fails
+        }
+
         router.replace("/(tabs)");
       } else {
         Alert.alert("Login Failed", result.error || "Unknown error occurred");
       }
     } catch (error) {
-      setLoading(false);
       Alert.alert(
         "Login Error",
         "An unexpected error occurred. Please try again."
       );
       console.error("Login error:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -58,6 +72,7 @@ export default function Login() {
             keyboardType="email-address"
             autoCapitalize="none"
             placeholderTextColor="#A0A0A0"
+            editable={!loading}
           />
         </View>
 
@@ -69,20 +84,25 @@ export default function Login() {
             onChangeText={setPassword}
             secureTextEntry
             placeholderTextColor="#A0A0A0"
+            editable={!loading}
           />
         </View>
 
         <TouchableOpacity
-          style={styles.button}
+          style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>Sign in</Text>
+          {loading ? (
+            <ActivityIndicator color="white" size="small" />
+          ) : (
+            <Text style={styles.buttonText}>Sign in</Text>
+          )}
         </TouchableOpacity>
 
         <View style={styles.footerContainer}>
           <Text style={styles.footerText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => navigation.navigate("Signup")}>
+          <TouchableOpacity onPress={() => router.push("/signup")}>
             <Text style={styles.footerLink}>Create an account</Text>
           </TouchableOpacity>
         </View>
@@ -130,6 +150,10 @@ const styles = StyleSheet.create({
     padding: 16,
     marginTop: 8,
     marginBottom: 24,
+    alignItems: "center",
+  },
+  buttonDisabled: {
+    backgroundColor: "#A5A5A5",
   },
   buttonText: {
     color: "white",
