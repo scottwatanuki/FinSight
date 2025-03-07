@@ -9,13 +9,13 @@ export default function Index() {
   const [initializing, setInitializing] = useState(true);
   const [cachedAuth, setCachedAuth] = useState(null);
 
-  // Check for cached auth state on initial load
   useEffect(() => {
     const checkCachedAuth = async () => {
       try {
         const cachedUser = await AsyncStorage.getItem("@user");
         if (cachedUser) {
           setCachedAuth(JSON.parse(cachedUser));
+          console.log("Using cached auth data for initial routing");
         }
       } catch (error) {
         console.error("Error reading cached auth:", error);
@@ -27,9 +27,14 @@ export default function Index() {
     if (loading) {
       checkCachedAuth();
     } else {
+      // Add this debug log
+      console.log(
+        "Auth state updated, user:",
+        user ? "authenticated" : "not authenticated"
+      );
       setInitializing(false);
     }
-  }, [loading]);
+  }, [loading, user]);
 
   // Show loading screen while checking auth state
   if (loading || initializing) {

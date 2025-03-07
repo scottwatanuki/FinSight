@@ -15,14 +15,12 @@ import { useRouter } from "expo-router";
 import userInitialization from "../services/userInitialization";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
- 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");
@@ -45,7 +43,23 @@ export default function Login() {
           // Continue with navigation even if initialization fails
         }
 
-        router.replace("/(tabs)");
+        // Cache user data in AsyncStorage before navigation
+        try {
+          const userToCache = {
+            uid: result.user.uid,
+            email: result.user.email,
+            displayName: result.user.displayName,
+            emailVerified: result.user.emailVerified,
+          };
+          await AsyncStorage.setItem("@user", JSON.stringify(userToCache));
+        } catch (error) {
+          console.error("Error caching user:", error);
+        }
+
+        // Add a small delay to ensure auth state is updated
+        setTimeout(() => {
+          router.replace("/(tabs)");
+        }, 100);
       } else {
         Alert.alert("Login Failed");
       }

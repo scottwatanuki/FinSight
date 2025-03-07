@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
       try {
         const cachedUser = await AsyncStorage.getItem("@user");
         if (cachedUser) {
+          console.log("Found cached user data, setting user state");
           setUser(JSON.parse(cachedUser));
         }
       } catch (error) {
@@ -29,6 +30,11 @@ export const AuthProvider = ({ children }) => {
 
     // Listen for authentication state changes
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      console.log(
+        "Auth state changed:",
+        currentUser ? "user authenticated" : "user signed out"
+      );
+
       if (currentUser) {
         console.log("User authenticated with UID:", currentUser.uid);
 
@@ -43,6 +49,7 @@ export const AuthProvider = ({ children }) => {
           };
 
           await AsyncStorage.setItem("@user", JSON.stringify(userToCache));
+          console.log("User data cached successfully");
         } catch (error) {
           console.error("Error caching user:", error);
         }
@@ -73,6 +80,7 @@ export const AuthProvider = ({ children }) => {
         // No user is signed in, clear the cache
         try {
           await AsyncStorage.removeItem("@user");
+          console.log("Cleared cached user data");
         } catch (error) {
           console.error("Error clearing cached user:", error);
         }
