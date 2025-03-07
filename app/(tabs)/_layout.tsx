@@ -1,55 +1,76 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Platform } from 'react-native';
+import { Tabs } from "expo-router";
+import { useAuth } from "../context/AuthContext";
+import { useRouter } from "expo-router";
+import { useEffect } from "react";
+import { Feather } from "@expo/vector-icons";
+import { HapticTab } from "@/components/HapticTab";
+import { IconSymbol } from "@/components/ui/IconSymbol";
+import TabBarBackground from "@/components/ui/TabBarBackground";
+import { Colors } from "@/constants/Colors";
+import { useColorScheme } from "@/hooks/useColorScheme";
 
+export default function TabsLayout() {
+    const { user } = useAuth();
+    const router = useRouter();
+    const colorScheme = useColorScheme();
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
-import { Colors } from '@/constants/Colors';
-import { useColorScheme } from '@/hooks/useColorScheme';
+    useEffect(() => {
+        if (!user) {
+            router.replace("/login");
+        }
+    }, [user]);
 
-
-export default function TabLayout() {
- const colorScheme = useColorScheme();
-
-
- return (
-   <Tabs
-     screenOptions={{
-       tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-       headerShown: false,
-       tabBarButton: HapticTab,
-       tabBarBackground: TabBarBackground,
-       tabBarStyle: Platform.select({
-         ios: {
-           // Use a transparent background on iOS to show the blur effect
-           position: 'absolute',
-         },
-         default: {},
-       }),
-     }}>
-     <Tabs.Screen
-       name="index"
-       options={{
-         title: 'Home',
-         tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-       }}
-     />
-     <Tabs.Screen
-       name="statistics"
-       options={{
-         title: 'Statistics',
-         tabBarIcon: ({ color }) => <IconSymbol size={28} name="creditcard.fill" color={color} />,
-       }}
-     />
-     <Tabs.Screen
-       name="explore"
-       options={{
-         title: 'Explore',
-         tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
-       }}
-     />
-   </Tabs>
- );
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+                tabBarInactiveTintColor: "gray",
+                // tabBarActiveTintColor: "#4C38CD",
+                tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+                tabBarButton: HapticTab,
+                tabBarBackground: TabBarBackground,
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "Home",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="home" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="statistics"
+                options={{
+                    title: "Statistics",
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol
+                            size={28}
+                            name="creditcard.fill"
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="transactions"
+                options={{
+                    title: "Transactions",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="credit-card" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="profile"
+                options={{
+                    title: "Profile",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="user" size={size} color={color} />
+                    ),
+                }}
+            />
+        </Tabs>
+    );
 }

@@ -1,0 +1,98 @@
+// app/context/AuthContext.js
+import React, { createContext, useState, useEffect, useContext } from "react";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "../../firebase";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import userInitialization from "../services/userInitialization";
+const { initializeUserIfNeeded } = userInitialization;
+
+export const AuthContext = createContext();
+
+export const AuthProvider = ({ children }) => {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Check AsyncStorage for cached user
+    const loadCachedUser = async () => {
+      try {
+        const cachedUser = await AsyncStorage.getItem("@user");
+        if (cachedUser) {
+          setUser(JSON.parse(cachedUser));
+        }
+      } catch (error) {
+        console.error("Error loading cached user:", error);
+      }
+    };
+
+    loadCachedUser();
+
+    // Listen for authentication state changes
+    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+      if (currentUser) {
+        console.log("User authenticated with UID:", currentUser.uid);
+
+        // Save user to AsyncStorage for additional caching
+        try {
+          // Only store essential user information
+          const userToCache = {
+            uid: currentUser.uid,
+            email: currentUser.email,
+            displayName: currentUser.displayName,
+            emailVerified: currentUser.emailVerified,
+          };
+
+          await AsyncStorage.setItem("@user", JSON.stringify(userToCache));
+        } catch (error) {
+          console.error("Error caching user:", error);
+        }
+
+        // Initialize user data structure if needed
+        try {
+          const result = await initializeUserIfNeeded(
+            currentUser.uid,
+            currentUser.email
+          );
+          if (result.success) {
+            if (
+              result.created.user ||
+              result.created.payment ||
+              result.created.budget
+            ) {
+              console.log("Created missing user data:", result.created);
+            }
+          } else {
+            console.error("Error initializing user data:", result.error);
+          }
+        } catch (error) {
+          console.error("Exception during user initialization:", error);
+        }
+
+        setUser(currentUser);
+      } else {
+        // No user is signed in, clear the cache
+        try {
+          await AsyncStorage.removeItem("@user");
+        } catch (error) {
+          console.error("Error clearing cached user:", error);
+        }
+
+        setUser(null);
+      }
+
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return (
+    <AuthContext.Provider value={{ user, loading }}>
+      {!loading && children}
+    </AuthContext.Provider>
+  );
+};
+
+export const useAuth = () => useContext(AuthContext);
+
+export default AuthContext;
