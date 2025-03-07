@@ -47,14 +47,14 @@ export default function Login() {
 
         router.replace("/(tabs)");
       } else {
-        Alert.alert("Login Failed", result.error || "Unknown error occurred");
+        Alert.alert("Login Failed");
       }
     } catch (error) {
       Alert.alert(
         "Login Error",
         "An unexpected error occurred. Please try again."
       );
-      console.error("Login error:", error);
+      console.error("Login error");
     } finally {
       setLoading(false);
     }
