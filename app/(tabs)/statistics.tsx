@@ -7,6 +7,8 @@ import {
     TextInput,
     Button,
     StyleSheet,
+    ActivityIndicator,
+    SafeAreaView,
 } from "react-native";
 import Modal from "react-native-modal";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -44,9 +46,11 @@ export default function Statistics() {
     const [viewOpen, setViewOpen] = useState(false);
     const [budgets, setBudgets] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const fetchBudgets = async () => {
+            setIsLoading(true);
             try {
                 const budgetKeys = await fetchUserBudgetKeys(userID);
                 const userBudgets = await fetchUserBudget(userID);
@@ -87,7 +91,9 @@ export default function Statistics() {
             } catch (error) {
                 console.error("budget retrieval failed: ", error);
                 setBudgets([]);
-            }
+            } finally {
+                setIsLoading(false); // Set loading to false after data is fetched
+              }
         };
         fetchBudgets();
     }, [monthStartDate, monthEndDate]);
@@ -100,6 +106,15 @@ export default function Statistics() {
         setAmount("");
         setModalVisible(!isModalVisible);
     };
+    if (isLoading) {
+        return (
+          <SafeAreaView style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#4C38CD" />
+            <Text style={styles.loadingText}>Loading budgets...</Text>
+          </SafeAreaView>
+        );
+      }
+    
 
     const handleAddBudget = () => {
         const budgetData = {
@@ -284,6 +299,7 @@ export default function Statistics() {
 
 const styles = StyleSheet.create({
     header: {
+        paddingTop: 70,
         flexDirection: "row",
         alignItems: "center",
     },
@@ -297,7 +313,6 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
-        paddingBottom: 70,
     },
     title: {
         fontSize: 24,
@@ -467,4 +482,15 @@ const styles = StyleSheet.create({
         fontSize: 14,
         marginVertical: 2,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "white",
+      },
+      loadingText: {
+        marginTop: 12,
+        fontSize: 16,
+        color: "#666",
+      },
 });

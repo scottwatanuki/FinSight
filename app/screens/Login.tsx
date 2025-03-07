@@ -1,5 +1,5 @@
 // app/screens/Login.tsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -13,6 +13,8 @@ import {
 import { loginUser } from "../services/auth";
 import { useRouter } from "expo-router";
 import userInitialization from "../services/userInitialization";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -20,6 +22,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+ 
   const handleLogin = async () => {
     if (!email || !password) {
       Alert.alert("Error", "Please fill in all fields");

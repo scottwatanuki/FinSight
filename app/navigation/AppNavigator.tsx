@@ -27,22 +27,6 @@ function HomeScreen() {
   );
 }
 
-// Simple Transactions component
-function TransactionsScreen() {
-  return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "white",
-      }}
-    >
-      <Text style={{ fontSize: 20 }}>Transactions Screen</Text>
-    </View>
-  );
-}
-
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
@@ -56,9 +40,7 @@ function AppTabs() {
 
           if (route.name === "Home") {
             iconName = "home";
-          } else if (route.name === "Transactions") {
-            iconName = "credit-card";
-          } else if (route.name === "Profile") {
+          } else {
             iconName = "user";
           }
 
@@ -77,7 +59,6 @@ function AppTabs() {
       })}
     >
       <Tab.Screen name="Home" component={HomeScreen} />
-      <Tab.Screen name="Transactions" component={TransactionsScreen} />
       <Tab.Screen name="Profile" component={Settings} />
     </Tab.Navigator>
   );

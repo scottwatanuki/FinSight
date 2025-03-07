@@ -43,22 +43,13 @@ export default function TabsLayout() {
             <Tabs.Screen
                 name="statistics"
                 options={{
-                    title: "Statistics",
+                    title: "Budgets",
                     tabBarIcon: ({ color }) => (
                         <IconSymbol
                             size={28}
                             name="creditcard.fill"
                             color={color}
                         />
-                    ),
-                }}
-            />
-            <Tabs.Screen
-                name="transactions"
-                options={{
-                    title: "Transactions",
-                    tabBarIcon: ({ color, size }) => (
-                        <Feather name="credit-card" size={size} color={color} />
                     ),
                 }}
             />

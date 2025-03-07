@@ -237,7 +237,7 @@ export default function Profile() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollView}>
         <View style={styles.contentContainer}>
-          <Text style={styles.headerTitle}>Profile</Text>
+          {/* <Text style={styles.headerTitle}>Profile</Text> */}
 
           {/* Profile Image and Name */}
           <View style={styles.profileContainer}>
@@ -342,12 +342,6 @@ export default function Profile() {
             </TouchableOpacity>
           </View>
 
-          {/* Debug Info - remove in production */}
-          <View style={styles.debugContainer}>
-            <Text style={styles.debugTitle}>Debug Info</Text>
-            <Text style={styles.debugText}>Auth UID: {user?.uid}</Text>
-          </View>
-
           {/* Logout button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <Feather
@@ -387,7 +381,7 @@ const styles = StyleSheet.create({
     padding: 24,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 24,
     fontWeight: "bold",
     textAlign: "center",
     marginBottom: 30,

@@ -92,6 +92,8 @@ const SpendingBarChart = ({
   );
 };
 
+
+
 const styles = StyleSheet.create({
   container: {
     flexDirection: "row",
@@ -108,6 +110,7 @@ const styles = StyleSheet.create({
     color: "#999",
   },
   chartArea: {
+    marginTop: 20,
     flex: 1,
     flexDirection: "row",
     justifyContent: "space-around",
@@ -152,13 +155,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  overBudgetDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: "white",
-  },
+  // overBudgetDot: {
+  //   width: 10,
+  //   height: 10,
+  //   borderRadius: 5,
+  //   borderWidth: 1,
+  //   borderColor: "white",
+  // },
   barLabel: {
     marginTop: 10,
     fontSize: 12,

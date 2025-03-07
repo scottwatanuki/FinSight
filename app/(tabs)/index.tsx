@@ -9,20 +9,22 @@ import {
   TouchableOpacity,
   ScrollView,
   ActivityIndicator,
+  FlatList,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
+import DropDownPicker from "react-native-dropdown-picker";
 
 // Import our custom components
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
-import RecentTransactions from "../../components/RecentTransactions";
 import SavingsGoalCard from "../../components/SavingsGoalCard";
 import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import MonthlySpendingChart from "../../components/MonthlySpendingChart";
+
 
 // Import our custom hook
 import { useSpendingData } from "../../hooks/useSpendingData";
@@ -37,35 +39,26 @@ const styles = StyleSheet.create({
     paddingBottom: 80, // Extra padding for tab bar
   },
   header: {
-    paddingVertical: 10,
     alignItems: "center",
   },
   headerText: {
-    fontSize: 18,
-    fontWeight: "700",
+    fontSize: 24,
+    fontWeight: "bold",
+    textAlign: "center",
+    marginBottom: 10,
   },
   greetingContainer: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 15,
   },
-  avatarContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: "hidden",
-    marginRight: 15,
-  },
-  avatar: {
-    width: 60,
-    height: 60,
-  },
+
   greetingTextContainer: {
     flex: 1,
   },
   greetingText: {
-    fontSize: 22,
-    fontWeight: "600",
+    fontSize: 24,
+    fontWeight: "700",
   },
   notificationButton: {
     width: 40,
@@ -209,9 +202,28 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
   },
+  viewDropdown: {
+    borderWidth: 0,
+    backgroundColor: "transparent",
+    paddingRight: 45,
+    marginLeft: 24,
+  },
+  viewDropdownText: {
+      color: "#3C3ADD",
+      fontWeight: "bold",
+      textAlign: "left",
+  },
+  viewDropdownContainer: {
+      borderWidth: 0,
+  },
+  viewDropdownContainerStyle: {
+      width: 150,
+  },
 });
 
 export default function HomeTab() {
+  const [view, setView] = useState("Weekly");
+  const [viewOpen, setViewOpen] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
@@ -248,7 +260,7 @@ export default function HomeTab() {
   const fallbackData = {
     categories: [
       { name: "Food", spent: 450, budget: 500, color: "#4CAF50" },
-      { name: "Bills", spent: 1500, budget: 1000, color: "#6C63FF" },
+      { name: "Bills", spent: 1200, budget: 1000, color: "#6C63FF" },
       { name: "Shopping", spent: 350, budget: 400, color: "#FF8A65" },
       { name: "Health", spent: 200, budget: 300, color: "#42A5F5" },
     ],
@@ -259,12 +271,9 @@ export default function HomeTab() {
 
   // Use real data if available, otherwise use fallback
   const displayData =
-    spendingData.loading || spendingData.error ? fallbackData : spendingData;
+    spendingData.loading || spendingData.error ? fallbackData : fallbackData;
 
   // Navigation handlers
-  const handleViewAllTransactions = () => {
-    router.push("/transactions");
-  };
 
   const handleViewAllInsights = () => {
     // This would navigate to a detailed insights page
@@ -331,15 +340,12 @@ export default function HomeTab() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         {/* Header Section */}
-        <View style={styles.header}>
+        {/* <View style={styles.header}>
           <Text style={styles.headerText}>Home</Text>
-        </View>
+        </View> */}
 
         {/* User Greeting Section with Avatar */}
         <View style={styles.greetingContainer}>
-          <View style={styles.avatarContainer}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          </View>
           <View style={styles.greetingTextContainer}>
             <Text style={styles.greetingText}>Hey, {userName}!</Text>
           </View>
@@ -350,14 +356,25 @@ export default function HomeTab() {
             </View>
           </TouchableOpacity>
         </View>
-
+     
         {/* Total Expenses Section */}
         <View style={styles.expensesContainer}>
-          <TouchableOpacity style={styles.periodSelector}>
-            <Text style={styles.periodSelectorText}>Total</Text>
-            <Feather name="chevron-down" size={20} color="#4C38CD" />
-          </TouchableOpacity>
-
+          <DropDownPicker
+                      open={viewOpen}
+                      value={view}
+                      items={[
+                          { label: "Daily", value: "Daily" },
+                          { label: "Weekly", value: "Weekly" },
+                          { label: "Monthly", value: "Monthly" },
+                          { label: "Yearly", value: "Yearly" },
+                      ]}
+                      setOpen={setViewOpen}
+                      setValue={setView}
+                      style={styles.viewDropdown}
+                      textStyle={styles.viewDropdownText}
+                      dropDownContainerStyle={styles.viewDropdownContainer}
+                      containerStyle={styles.viewDropdownContainerStyle}
+                  />
           {/* Show loading indicator if data is loading */}
           {spendingData.loading ? (
             <View style={styles.loadingContainer}>
@@ -479,8 +496,6 @@ export default function HomeTab() {
           onPress={handleSavingsGoalPress}
         />
 
-        {/* Recent Transactions */}
-        <RecentTransactions onViewAll={handleViewAllTransactions} />
 
         {/* Financial Insights */}
         <FinancialInsightsCard onViewAll={handleViewAllInsights} />
