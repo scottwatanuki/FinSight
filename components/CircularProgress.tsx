@@ -1,13 +1,24 @@
 import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import { View, StyleSheet, ViewStyle } from "react-native";
 
-const CircularProgress = ({
+interface CircularProgressProps {
+  percentage: number;
+  size?: number;
+  strokeWidth?: number;
+  color?: string;
+  bgColor?: string;
+  children?: React.ReactNode;
+  style?: ViewStyle;
+}
+
+const CircularProgress: React.FC<CircularProgressProps> = ({
   percentage,
   size = 240,
   strokeWidth = 20,
   color = "#6C63FF",
   bgColor = "#E6E6FA",
   children,
+  style,
 }) => {
   // Calculate the actual circle dimensions
   const circleSize = size - strokeWidth;
@@ -24,7 +35,7 @@ const CircularProgress = ({
   const rotationAngle = -90 + ((percentage / 100) * 180) / 2;
 
   return (
-    <View style={[styles.container, { width: size, height: size }]}>
+    <View style={[styles.container, { width: size, height: size }, style]}>
       {/* Background Circle */}
       <View
         style={[
