@@ -13,6 +13,7 @@ export default function Index() {
     const checkCachedAuth = async () => {
       try {
         const cachedUser = await AsyncStorage.getItem("@user");
+        
         if (cachedUser) {
           setCachedAuth(JSON.parse(cachedUser));
           console.log("Using cached auth data for initial routing");
@@ -27,7 +28,6 @@ export default function Index() {
     if (loading) {
       checkCachedAuth();
     } else {
-      // Add this debug log
       console.log(
         "Auth state updated, user:",
         user ? "authenticated" : "not authenticated"
@@ -36,7 +36,6 @@ export default function Index() {
     }
   }, [loading, user]);
 
-  // Show loading screen while checking auth state
   if (loading || initializing) {
     return (
       <View style={styles.loadingContainer}>
@@ -45,10 +44,8 @@ export default function Index() {
     );
   }
 
-  // Use cached auth if available and still loading the user
   const isAuthenticated = user || cachedAuth;
-
-  // Redirect based on authentication status
+  
   return isAuthenticated ? (
     <Redirect href="/(tabs)" />
   ) : (
