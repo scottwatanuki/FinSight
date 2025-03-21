@@ -41,16 +41,16 @@ export default function Statistics() {
     const userID = user?.uid;
 
     const iconDict: { [key: string]: IconSymbolName } = {
-        entertainment: "film",
+        entertainment: "film.fill",
         travel: "airplane",
         bills: "calendar",
-        groceries: "cart",
+        groceries: "cart.fill",
         dining: "fork.knife",
-        subscriptions: "newspaper",
-        transportation: "car",
-        recreational: "gamecontroller",
-        shopping: "bag",
-        health: "heart",
+        subscriptions: "newspaper.fill",
+        transportation: "car.fill",
+        recreational: "gamecontroller.fill",
+        shopping: "bag.fill",
+        health: "heart.fill",
         misc: "ellipsis",
     };
     const [isModalVisible, setModalVisible] = useState(false);
@@ -59,7 +59,7 @@ export default function Statistics() {
     const [frequency, setFrequency] = useState("Daily");
     const [amount, setAmount] = useState("");
 
-    const [spendingCategory, setSpendingCategory] = useState("food"); //adding spending to history
+    const [spendingCategory, setSpendingCategory] = useState(""); //adding spending to history
     const [spendingAmount, setSpendingAmount] = useState("");
     const [spendingDescription, setSpendingDescription] = useState("");
     const [spendingDate, setSpendingDate] = useState(new Date());
@@ -73,6 +73,8 @@ export default function Statistics() {
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshData, setRefreshData] = useState(false);
+    const [filterPeriod, setFilterPeriod] = useState("30"); // State for filter period
+    const [filterOpen, setFilterOpen] = useState(false); // State for filter dropdown
 
     const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
 
@@ -102,7 +104,7 @@ export default function Statistics() {
                 if (budgetKeys && userBudgets && spendingPerCategory) {
                     const newBudgets = budgetKeys.map((key) => ({
                         category: key,
-                        amount: spendingPerCategory[key]["total"] || 0,
+                        amount: spendingPerCategory[key]?.["total"] || 0,
                         limit: userBudgets[key] || 0,
                         icon: (iconDict[key] as IconSymbolName) || "null",
                     }));
@@ -126,6 +128,7 @@ export default function Statistics() {
                     const newHistory = transactions.map((transaction) => ({
                         name: transaction["description"],
                         amount: transaction["amount"],
+                        category: transaction["category"],
                         date: transaction["date"].toDate().toLocaleDateString(),
                     }));
                     setHistory(newHistory);
@@ -177,6 +180,18 @@ export default function Statistics() {
         setAmount("");
         setModalVisible(!isModalVisible);
     };
+
+    const filterTransactions = (transactions, period) => {
+        const now = new Date();
+        const pastDate = new Date(now);
+        pastDate.setDate(now.getDate() - parseInt(period));
+
+        return transactions.filter(transaction => {
+            const transactionDate = new Date(transaction.date);
+            return transactionDate >= pastDate && transactionDate <= now;
+        });
+    };
+
     if (authLoading || isLoading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -195,6 +210,8 @@ export default function Statistics() {
             </SafeAreaView>
         );
     }
+
+    const filteredHistory = filterTransactions(history, filterPeriod);
 
     const handleAddBudget = () => {
         const budgetData = {
@@ -216,25 +233,117 @@ export default function Statistics() {
         // Transform or filter budgets based on the selected view
         switch (view) {
             case "Daily":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount / 30,
-                    limit: budget.limit / 30,
-                }));
+                return budgets.map((budget) => {
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 7,
+                            limit: budget.limit / 7,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 30,
+                            limit: budget.limit / 30,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount / 365,
+                            limit: budget.limit / 365,
+                        };
+                    }
+                });
             case "Weekly":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount / 4,
-                    limit: budget.limit / 4,
-                }));
+                return budgets.map((budget) => {
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount *7,
+                            limit: budget.limit *7,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 4,
+                            limit: budget.limit / 4,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount / 52,
+                            limit: budget.limit / 52,
+                        };
+                    }
+                });
             case "Monthly":
-                return budgets;
+                return budgets.map((budget) => {
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount/30,
+                            limit: budget.limit/30
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 4,
+                            limit: budget.limit / 4,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount *12,
+                            limit: budget.limit *12,
+                        };
+                    }
+                });
             case "Yearly":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount * 12,
-                    limit: budget.limit * 12,
-                }));
+                return budgets.map((budget) => {
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount/365,
+                            limit: budget.limit/365,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 52,
+                            limit: budget.limit / 52,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 12,
+                            limit: budget.limit / 12,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    }
+                });
             default:
                 return budgets;
         }
@@ -280,18 +389,19 @@ export default function Statistics() {
                         />
                         <Text style={styles.category}>{budget.category}</Text>
                         <View style={styles.amountContainer}>
-                            <Text style={styles.amount}>
-                                ${budget.amount.toFixed(2)}
-                            </Text>
                             <Text style={styles.limit}>
-                                of ${budget.limit.toFixed(2)}
+                                ${budget.amount.toFixed(2)} spent of
+                            </Text>
+                            <Text style={styles.amount}>
+                                ${budget.limit.toFixed(2)} 
                             </Text>
                         </View>
                     </View>
                 ))}
             </ScrollView>
-            <View style={styles.historyHeaderContainer}>
-                <Text style={[styles.subtitle, styles.historySubtitle]}>
+            
+            <View style={styles.historyHeaderContainer}> 
+                <Text style={styles.historySubtitle}>
                     History
                 </Text>
                 <TouchableOpacity
@@ -300,6 +410,20 @@ export default function Statistics() {
                 >
                     <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
                 </TouchableOpacity>
+                    <DropDownPicker
+                    open={filterOpen}
+                    value={filterPeriod}
+                    items={[
+                        { label: "30 days", value: "30" },
+                        { label: "60 days", value: "60" },
+                        { label: "90 days", value: "90" },
+                    ]}
+                    setOpen={setFilterOpen}
+                    setValue={setFilterPeriod}
+                    style={styles.filterDropdown}
+                    textStyle={styles.filterDropdownText}
+                    dropDownContainerStyle={styles.filterDropdownContainer}
+                />
             </View>
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
                 {history.map((item, index) => (
@@ -307,6 +431,7 @@ export default function Statistics() {
                         <View style={styles.historyTextContainer}>
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
+                            <Text style={styles.historyCategory}>{item.category}</Text>
                         </View>
                         <Text style={styles.historyAmount}>
                             ${item.amount.toFixed(2)}
@@ -319,7 +444,13 @@ export default function Statistics() {
                 onBackdropPress={() => setSpendingModalVisible(false)}
             >
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add Spending</Text>
+                    <Text style={styles.modalTitle}>Add Expense</Text>
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={() => setSpendingModalVisible(false)}
+                    >
+                        <IconSymbol size={20} name="xmark" color="#000" />
+                    </TouchableOpacity>
                     <DropDownPicker
                         open={categoryOpen}
                         value={spendingCategory}
@@ -456,7 +587,7 @@ export default function Statistics() {
                         style={styles.addButton}
                         onPress={handleAddBudget}
                     >
-                        <Text style={styles.addButtonText}>Add</Text>
+                        <Text style={styles.addButtonText}>Done</Text>
                     </TouchableOpacity>
                 </View>
             </Modal>
@@ -480,6 +611,7 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
+        marginBottom: 150,
     },
     title: {
         fontSize: 24,
@@ -494,13 +626,16 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     historySubtitle: {
-        marginTop: 16,
+        fontSize: 24,
+        fontWeight: "bold",
+        paddingHorizontal: 16,
+        marginLeft: -14,
     },
     scrollView: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginBottom: 160,
+        marginBottom: 0,
         paddingHorizontal: 16,
     },
     card: {
@@ -534,6 +669,9 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
+        fontSize: 24,
+        fontWeight: "bold",
+        paddingHorizontal: 16,
     },
     historyCard: {
         backgroundColor: "#ffffff",
@@ -633,17 +771,20 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     viewDropdown: {
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor: "#ccc",
         backgroundColor: "transparent",
-        paddingRight: 20,
+        maxWidth: 115,
+        marginBottom: 10,
     },
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
-        textAlign: "right",
     },
     viewDropdownContainer: {
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        maxWidth: 115,
     },
     viewDropdownContainerStyle: {
         width: 150,
@@ -678,5 +819,32 @@ const styles = StyleSheet.create({
     },
     datePickerButtonText: {
         color: "#000",
+    },
+    filterDropdown: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 5,
+        marginBottom: 16,
+        maxWidth: 130,
+        marginLeft: 70,
+        marginTop: 15,
+        marginRight: 200,
+    },
+    filterDropdownText: {
+        fontSize: 16,
+        color: "#3C3ADD",
+        fontWeight: "bold",
+    },
+    filterDropdownContainer: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        marginLeft: 70,
+        marginTop: 15,
+        maxWidth: 130,
+    },
+    historyCategory: {
+        fontSize: 14,
+        color: "#3C3ADD",
+        fontWeight: "bold",
     },
 });
