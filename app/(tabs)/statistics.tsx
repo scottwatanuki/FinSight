@@ -41,10 +41,17 @@ export default function Statistics() {
     const userID = user?.uid;
 
     const iconDict: { [key: string]: IconSymbolName } = {
-        shopping: "cart.fill",
+        entertainment: "film",
+        travel: "airplane",
         bills: "calendar",
-        food: "fork.knife",
-        health: "heart.text.clipboard.fill",
+        groceries: "cart",
+        dining: "fork.knife",
+        subscriptions: "newspaper",
+        transportation: "car",
+        recreational: "gamecontroller",
+        shopping: "bag",
+        health: "heart",
+        misc: "ellipsis",
     };
     const [isModalVisible, setModalVisible] = useState(false);
     const [isSpendingModalVisible, setSpendingModalVisible] = useState(false);
@@ -241,9 +248,8 @@ export default function Statistics() {
                     style={styles.budgetDropdown}
                     onPress={toggleModal}
                 >
-                    <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
+                    <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
                 </TouchableOpacity>
-
                 <DropDownPicker
                     open={viewOpen}
                     value={view}
@@ -318,10 +324,17 @@ export default function Statistics() {
                         open={categoryOpen}
                         value={spendingCategory}
                         items={[
-                            { label: "Food", value: "food" },
+                            { label: "Entertainment", value: "entertainment" },
+                            { label: "Travel", value: "travel" },
                             { label: "Bills", value: "bills" },
-                            { label: "Health", value: "health" },
+                            { label: "Groceries", value: "groceries" },
+                            { label: "Dining", value: "dining" },
+                            { label: "Subscriptions", value: "subscriptions" },
+                            { label: "Transportation", value: "transportation" },
+                            { label: "Recreational", value: "recreational" },
                             { label: "Shopping", value: "shopping" },
+                            { label: "Health", value: "health" },
+                            { label: "Misc", value: "misc" },
                         ]}
                         setOpen={setCategoryOpen}
                         setValue={setSpendingCategory}
@@ -374,7 +387,7 @@ export default function Statistics() {
             </Modal>
             <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add Budget</Text>
+                    <Text style={styles.modalTitle}>Edit Budget</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
                         onPress={toggleModal}
@@ -386,10 +399,17 @@ export default function Statistics() {
                         open={categoryOpen}
                         value={category}
                         items={[
-                            { label: "Shopping", value: "Shopping" },
-                            { label: "Bills", value: "Bills" },
-                            { label: "Food", value: "Food" },
-                            { label: "Health", value: "Health" },
+                            { label: "Entertainment", value: "entertainment" },
+                            { label: "Travel", value: "travel" },
+                            { label: "Bills", value: "bills" },
+                            { label: "Groceries", value: "groceries" },
+                            { label: "Dining", value: "dining" },
+                            { label: "Subscriptions", value: "subscriptions" },
+                            { label: "Transportation", value: "transportation" },
+                            { label: "Recreational", value: "recreational" },
+                            { label: "Shopping", value: "shopping" },
+                            { label: "Health", value: "health" },
+                            { label: "Misc", value: "misc" },
                         ]}
                         setOpen={setCategoryOpen}
                         setValue={setCategory}
