@@ -17,8 +17,8 @@ import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
 import {
     fetchUserBudgetKeys,
     fetchUserBudget,
-    fetchSpendingPerCategory,
-    fetchTransactions,
+    fetchSpendingPerCategoryByDate,
+    fetchUserTransactionsByDate,
 } from "../backend/fetchData";
 import { setBudget, addSpending } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
@@ -82,11 +82,12 @@ export default function Statistics() {
             try {
                 const budgetKeys = await fetchUserBudgetKeys(userID);
                 const userBudgets = await fetchUserBudget(userID);
-                const spendingPerCategory = await fetchSpendingPerCategory(
-                    userID,
-                    monthStartDate,
-                    monthEndDate
-                );
+                const spendingPerCategory =
+                    await fetchSpendingPerCategoryByDate(
+                        userID,
+                        monthStartDate,
+                        monthEndDate
+                    );
                 console.log(
                     "from statistics, spending per category:",
                     spendingPerCategory
@@ -106,7 +107,7 @@ export default function Statistics() {
                     setBudgets([]);
                 }
 
-                const transactions = await fetchTransactions(
+                const transactions = await fetchUserTransactionsByDate(
                     userID,
                     monthStartDate,
                     monthEndDate
@@ -158,7 +159,7 @@ export default function Statistics() {
         setSpendingCategory("");
         setSpendingDescription("");
         setSpendingDate(new Date());
-        toggleModal();
+        toggleSpendingModal();
         setRefreshData((prev) => !prev);
     };
 
@@ -169,6 +170,14 @@ export default function Statistics() {
         setFrequency("");
         setAmount("");
         setModalVisible(!isModalVisible);
+    };
+
+    const toggleSpendingModal = () => {
+        setSpendingCategory("food"); // Reset to default category
+        setSpendingAmount("");
+        setSpendingDescription("");
+        setSpendingDate(new Date());
+        setSpendingModalVisible(!isSpendingModalVisible); // Toggle only the "Add Spending" modal
     };
     if (authLoading || isLoading) {
         return (

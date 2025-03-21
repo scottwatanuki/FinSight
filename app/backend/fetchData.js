@@ -1,21 +1,37 @@
-import { db } from "../../firebase";
-import {
+// fetchData.js
+const { db } = require("../../firebase");
+const {
     doc,
     getDoc,
     getDocs,
     collection,
     query,
     where,
-} from "firebase/firestore";
-import { Timestamp } from "firebase/firestore";
+} = require("firebase/firestore");
+const { Timestamp } = require("firebase/firestore");
 
+//hard coded for now
 let categories = ["bills", "shopping", "food", "health"];
-const monthStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const monthEndDate = Timestamp.fromDate(new Date("2025-02-28"));
-const weekStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const weekEndDate = Timestamp.fromDate(new Date("2025-02-08"));
+let months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
 
-export async function fetchUserBudgetKeys(userID) {
+// FOR TESTING
+const monthStartDate = Timestamp.fromDate(new Date("2025-03-01"));
+const monthEndDate = Timestamp.fromDate(new Date("2025-03-31"));
+
+async function fetchUserBudgetKeys(userID) {
     try {
         const docRef = doc(db, "budgets", userID);
         const docSnap = await getDoc(docRef);
@@ -33,7 +49,7 @@ export async function fetchUserBudgetKeys(userID) {
     }
 }
 
-export async function fetchAllBudgets() {
+async function fetchAllBudgets() {
     try {
         console.log("Fetching data...");
         const querySnapshot = await getDocs(collection(db, "budgets")); // all docs in budgets
@@ -48,7 +64,7 @@ export async function fetchAllBudgets() {
     }
 }
 
-export async function fetchUserBudget(userID) {
+async function fetchUserBudget(userID) {
     try {
         console.log(`Fetching budget for user: ${userID}`);
 
@@ -69,7 +85,7 @@ export async function fetchUserBudget(userID) {
     }
 }
 
-export async function fetchTransactions(userID, startDate, endDate) {
+async function fetchUserTransactionsByDate(userID, startDate, endDate) {
     try {
         console.log(
             `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
@@ -98,7 +114,37 @@ export async function fetchTransactions(userID, startDate, endDate) {
     }
 }
 
-export async function fetchOneCategorySH(userID, category, startDate, endDate) {
+async function fetchAllUserTransactions(userID) {
+    try {
+        console.log(`Fetching transactions for user: ${userID}`);
+
+        const userRef = doc(db, "spending_history", userID);
+        let transactions = [];
+
+        for (const category of categories) {
+            const categoryRef = collection(userRef, category);
+            const transactionsSnapshot = await getDocs(categoryRef);
+            transactionsSnapshot.forEach((doc) => {
+                transactions.push({ id: doc.id, category, ...doc.data() });
+            });
+        }
+        console.log("all transactions:", transactions);
+        return transactions;
+    } catch (error) {
+        console.log(
+            "Error in fetchAllUserTransctions. Cannot get transactions:",
+            error
+        );
+        return [];
+    }
+}
+
+async function fetchSpendingHistoryByCategory(
+    userID,
+    category,
+    startDate,
+    endDate
+) {
     try {
         console.log(`fetch spending history for ${userID} in ${category}:`);
         const categoryCollectionRef = collection(
@@ -130,21 +176,32 @@ export async function fetchOneCategorySH(userID, category, startDate, endDate) {
             });
         });
 
-        console.log(
-            `Fetched ${transactions.length} transactions in ${category} for user ${userID}`
-        );
+        console.log(`Fetched transactions in ${category} for user ${userID}`);
         return transactions;
     } catch (error) {
         console.error("Error fetching spending history:", error);
     }
 }
 
-export async function fetchSpendingPerCategory(userID, startDate, endDate) {
+/**
+ * get total spending during month & spending breakdown from each category 
+
+ * @returns_example
+    {
+        total: 170,
+        bills: { total: 0, transactions: [] },
+        shopping: { total: 0, transactions: [] },
+        food: { total: 120, transactions: [ [Object] ] },
+        health: { total: 50, transactions: [ [Object] ] }
+      }
+ */
+async function fetchSpendingPerCategoryByDate(userID, startDate, endDate) {
     try {
         let spendingPerCategory = {}; // "shopping": {total: 250, transactions: []}
+        spendingPerCategory["total"] = 0;
         console.log("fetching spending per category....");
         for (const category of categories) {
-            const transactions = await fetchOneCategorySH(
+            const transactions = await fetchSpendingHistoryByCategory(
                 userID,
                 category,
                 startDate,
@@ -156,6 +213,7 @@ export async function fetchSpendingPerCategory(userID, startDate, endDate) {
             }
             spendingPerCategory[category] = { total: total_amount_spent };
             spendingPerCategory[category]["transactions"] = transactions;
+            spendingPerCategory["total"] += total_amount_spent;
             console.log(
                 `num of transactions: ${spendingPerCategory[category]["transactions"].length}`
             );
@@ -166,8 +224,90 @@ export async function fetchSpendingPerCategory(userID, startDate, endDate) {
         console.log(spendingPerCategory);
         return spendingPerCategory;
     } catch (error) {
-        console.log("cannot calc user's spending curretly");
+        console.log(
+            "fetchSpendingPerCategoryByDate not working. Cannot calc user's spending curretly"
+        );
     }
 }
 
-// fetchOneCategorySH("taylor_userid", "shopping", monthStartDate, monthEndDate);
+function organizeTransactionsByMonthAndCategory(transactions) {
+    const spendingData = {};
+
+    for (const transaction of transactions) {
+        const { category, amount, date } = transaction;
+        const transactionDate = date.toDate();
+        const monthStart = new Date(
+            transactionDate.getFullYear(),
+            transactionDate.getMonth(),
+            1
+        );
+        const monthKey = monthStart.toISOString().slice(0, 7);
+
+        if (!spendingData[category]) {
+            spendingData[category] = {
+                total: 0,
+                months: {},
+            };
+        }
+
+        if (!spendingData[category].months[monthKey]) {
+            spendingData[category].months[monthKey] = {
+                startDate: monthStart,
+                spent: 0,
+            };
+        }
+        spendingData[category].total += amount;
+        spendingData[category].months[monthKey].spent += amount;
+    }
+
+    return spendingData;
+}
+
+/**
+ * get total spending during month & spending breakdown for each cat
+ *
+ * @example_output
+ * {
+ *   bills: {
+ *     total: 1200,
+ *     months: {
+ *       "2025-01": { startDate: "2025-01-01", spent: 400 },
+ *       "2025-02": { startDate: "2025-02-01", spent: 800 },
+ *     },
+ *   },
+ *   shopping: {
+ *     total: 500,
+ *     months: {
+ *       "2025-01": { startDate: "2025-01-01", spent: 200 },
+ *       "2025-02": { startDate: "2025-02-01", spent: 300 },
+ *     },
+ *   },
+ * }
+ */
+async function fetchTotalSpendingPerCategory(userID) {
+    try {
+        const transactions = await fetchAllUserTransactions(userID);
+        const spendingData =
+            organizeTransactionsByMonthAndCategory(transactions);
+
+        console.log(`${userID}'s total spending per category:`);
+        console.log(spendingData);
+
+        return spendingData;
+    } catch (error) {
+        console.log("Error fetching total spending per category:", error);
+        return null;
+    }
+}
+
+// Call the function for testing
+fetchTotalSpendingPerCategory("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
+
+module.exports = {
+    fetchUserBudgetKeys,
+    fetchAllBudgets,
+    fetchUserBudget,
+    fetchUserTransactionsByDate,
+    fetchSpendingHistoryByCategory,
+    fetchSpendingPerCategoryByDate,
+};
