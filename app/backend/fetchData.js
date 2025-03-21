@@ -71,7 +71,9 @@ export async function fetchUserBudget(userID) {
 
 export async function fetchTransactions(userID, startDate, endDate) {
     try {
-        console.log(`Fetching transactions for user: ${userID}`);
+        console.log(
+            `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
+        );
 
         const userRef = doc(db, "spending_history", userID);
         let transactions = [];
