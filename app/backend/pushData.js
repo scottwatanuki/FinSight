@@ -1,5 +1,5 @@
 import { db } from "../../firebase";
-import { doc, updateDoc } from "firebase/firestore";
+import { doc, updateDoc, collection, addDoc } from "firebase/firestore";
 
 export async function setBudget(budgetData, userID) {
     try {
@@ -22,5 +22,20 @@ export async function setBudget(budgetData, userID) {
         console.log(`updated budget for ${category}: ${finalAmount}.`);
     } catch (error) {
         console.error("cannot update budget", error);
+    }
+}
+export async function addSpending(spendingData, userID) {
+    try {
+        const { category, amount, date, description } = spendingData;
+        const spendingRef = collection(
+            db,
+            "spending_history",
+            userID,
+            category
+        );
+        await addDoc(spendingRef, spendingData);
+        console.log("Spending data added successfully!");
+    } catch (error) {
+        console.error("cannot add new spending", error);
     }
 }

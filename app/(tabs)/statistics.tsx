@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import Modal from "react-native-modal";
 import DropDownPicker from "react-native-dropdown-picker";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
 import {
     fetchUserBudgetKeys,
@@ -19,16 +20,26 @@ import {
     fetchSpendingPerCategory,
     fetchTransactions,
 } from "../backend/fetchData";
-import { setBudget } from "../backend/pushData";
+import { setBudget, addSpending } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
+import { useAuth } from "../context/AuthContext";
 
-const monthStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const monthEndDate = Timestamp.fromDate(new Date("2025-02-28"));
-const weekStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const weekEndDate = Timestamp.fromDate(new Date("2025-02-08"));
-const userID = "taylor_userid";
+const getCurrentMonthDates = () => {
+    const now = new Date(); // Get the current date
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+    return {
+        monthStartDate: Timestamp.fromDate(startOfMonth),
+        monthEndDate: Timestamp.fromDate(endOfMonth),
+    };
+};
 
 export default function Statistics() {
+    // user information
+    const { user, loading: authLoading } = useAuth();
+    const userID = user?.uid;
+
     const iconDict: { [key: string]: IconSymbolName } = {
         shopping: "cart.fill",
         bills: "calendar",
@@ -36,9 +47,16 @@ export default function Statistics() {
         health: "heart.text.clipboard.fill",
     };
     const [isModalVisible, setModalVisible] = useState(false);
+    const [isSpendingModalVisible, setSpendingModalVisible] = useState(false);
     const [category, setCategory] = useState("Shopping");
     const [frequency, setFrequency] = useState("Daily");
     const [amount, setAmount] = useState("");
+
+    const [spendingCategory, setSpendingCategory] = useState("food"); //adding spending to history
+    const [spendingAmount, setSpendingAmount] = useState("");
+    const [spendingDescription, setSpendingDescription] = useState("");
+    const [spendingDate, setSpendingDate] = useState(new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
 
     const [categoryOpen, setCategoryOpen] = useState(false);
     const [frequencyOpen, setFrequencyOpen] = useState(false);
@@ -47,9 +65,19 @@ export default function Statistics() {
     const [budgets, setBudgets] = useState<any[]>([]);
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [refreshData, setRefreshData] = useState(false);
 
+    const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
+
+    const onChange = (event, selectedDate) => {
+        setShowDatePicker(false);
+        if (selectedDate) {
+            setSpendingDate(selectedDate);
+        }
+    };
     useEffect(() => {
         const fetchBudgets = async () => {
+            if (!userID) return;
             setIsLoading(true);
             try {
                 const budgetKeys = await fetchUserBudgetKeys(userID);
@@ -59,7 +87,10 @@ export default function Statistics() {
                     monthStartDate,
                     monthEndDate
                 );
-                console.log("SPENDING PER CATEGORY:", spendingPerCategory);
+                console.log(
+                    "from statistics, spending per category:",
+                    spendingPerCategory
+                );
 
                 if (budgetKeys && userBudgets && spendingPerCategory) {
                     const newBudgets = budgetKeys.map((key) => ({
@@ -80,6 +111,10 @@ export default function Statistics() {
                     monthStartDate,
                     monthEndDate
                 );
+                console.log(
+                    "from statistics, total transactons:",
+                    transactions.length
+                );
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
                         name: transaction["description"],
@@ -93,10 +128,39 @@ export default function Statistics() {
                 setBudgets([]);
             } finally {
                 setIsLoading(false); // Set loading to false after data is fetched
-              }
+            }
         };
         fetchBudgets();
-    }, [monthStartDate, monthEndDate]);
+    }, [userID, refreshData]);
+
+    const handleAddSpending = async () => {
+        if (!userID) {
+            console.error("User is not authenticated.");
+            return;
+        }
+
+        const spendingData = {
+            category: spendingCategory,
+            amount: parseFloat(spendingAmount),
+            description: spendingDescription,
+            date: Timestamp.fromDate(spendingDate),
+        };
+
+        try {
+            addSpending(spendingData, userID);
+            setSpendingModalVisible(false);
+        } catch (error) {
+            console.error("Error adding spending data:", error);
+        }
+        console.log({ category, frequency, amount });
+        // Reset the form fields
+        setSpendingAmount("");
+        setSpendingCategory("");
+        setSpendingDescription("");
+        setSpendingDate(new Date());
+        toggleModal();
+        setRefreshData((prev) => !prev);
+    };
 
     const toggleModal = () => {
         setCategoryOpen(false);
@@ -106,15 +170,24 @@ export default function Statistics() {
         setAmount("");
         setModalVisible(!isModalVisible);
     };
-    if (isLoading) {
+    if (authLoading || isLoading) {
         return (
-          <SafeAreaView style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#4C38CD" />
-            <Text style={styles.loadingText}>Loading budgets...</Text>
-          </SafeAreaView>
+            <SafeAreaView style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#4C38CD" />
+                <Text style={styles.loadingText}>Loading budgets...</Text>
+            </SafeAreaView>
         );
-      }
-    
+    }
+
+    if (!user) {
+        return (
+            <SafeAreaView style={styles.container}>
+                <Text style={styles.subtitle}>
+                    Sign in to view your budget and spending history!
+                </Text>
+            </SafeAreaView>
+        );
+    }
 
     const handleAddBudget = () => {
         const budgetData = {
@@ -129,6 +202,7 @@ export default function Statistics() {
         setFrequency("");
         setAmount("");
         toggleModal();
+        setRefreshData((prev) => !prev);
     };
 
     const getFilteredBudgets = () => {
@@ -169,6 +243,7 @@ export default function Statistics() {
                 >
                     <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
                 </TouchableOpacity>
+
                 <DropDownPicker
                     open={viewOpen}
                     value={view}
@@ -209,9 +284,17 @@ export default function Statistics() {
                     </View>
                 ))}
             </ScrollView>
-            <Text style={[styles.subtitle, styles.historySubtitle]}>
-                History
-            </Text>
+            <View style={styles.historyHeaderContainer}>
+                <Text style={[styles.subtitle, styles.historySubtitle]}>
+                    History
+                </Text>
+                <TouchableOpacity
+                    style={styles.addBudgetButton}
+                    onPress={() => setSpendingModalVisible(true)}
+                >
+                    <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
+                </TouchableOpacity>
+            </View>
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
                 {history.map((item, index) => (
                     <View key={index} style={styles.historyCard}>
@@ -225,7 +308,70 @@ export default function Statistics() {
                     </View>
                 ))}
             </ScrollView>
-
+            <Modal
+                isVisible={isSpendingModalVisible}
+                onBackdropPress={() => setSpendingModalVisible(false)}
+            >
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Add Spending</Text>
+                    <DropDownPicker
+                        open={categoryOpen}
+                        value={spendingCategory}
+                        items={[
+                            { label: "Food", value: "food" },
+                            { label: "Bills", value: "bills" },
+                            { label: "Health", value: "health" },
+                            { label: "Shopping", value: "shopping" },
+                        ]}
+                        setOpen={setCategoryOpen}
+                        setValue={setSpendingCategory}
+                        style={styles.dropdown}
+                        placeholder="Category"
+                        placeholderStyle={{ color: "grey" }}
+                        containerStyle={[
+                            styles.dropdownContainer,
+                            { zIndex: 1000 },
+                        ]}
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Amount"
+                        placeholderTextColor="grey"
+                        value={spendingAmount}
+                        onChangeText={setSpendingAmount}
+                        keyboardType="numeric"
+                    />
+                    <TextInput
+                        style={styles.input}
+                        placeholder="Description"
+                        placeholderTextColor="grey"
+                        value={spendingDescription}
+                        onChangeText={setSpendingDescription}
+                    />
+                    <TouchableOpacity
+                        style={styles.datePickerButton}
+                        onPress={() => setShowDatePicker(true)}
+                    >
+                        <Text style={styles.datePickerButtonText}>
+                            {spendingDate.toLocaleDateString()}
+                        </Text>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={spendingDate}
+                            mode="date"
+                            display="default"
+                            onChange={onChange}
+                        />
+                    )}
+                    <TouchableOpacity
+                        style={styles.addButton}
+                        onPress={handleAddSpending}
+                    >
+                        <Text style={styles.addButtonText}>Add</Text>
+                    </TouchableOpacity>
+                </View>
+            </Modal>
             <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
                 <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>Add Budget</Text>
@@ -235,6 +381,7 @@ export default function Statistics() {
                     >
                         <IconSymbol size={20} name="xmark" color="#000" />
                     </TouchableOpacity>
+
                     <DropDownPicker
                         open={categoryOpen}
                         value={category}
@@ -363,6 +510,11 @@ const styles = StyleSheet.create({
         color: "#939393",
         marginVertical: 2,
     },
+    historyHeaderContainer: {
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+    },
     historyCard: {
         backgroundColor: "#ffffff",
         flexDirection: "row",
@@ -436,6 +588,9 @@ const styles = StyleSheet.create({
         top: 20,
         right: 20,
     },
+    addBudgetButton: {
+        alignSelf: "center",
+    },
     addButton: {
         backgroundColor: "#3C3ADD",
         borderWidth: 1,
@@ -487,10 +642,21 @@ const styles = StyleSheet.create({
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "white",
-      },
-      loadingText: {
+    },
+    loadingText: {
         marginTop: 12,
         fontSize: 16,
         color: "#666",
-      },
+    },
+    datePickerButton: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        padding: 10,
+        marginBottom: 10,
+        borderRadius: 5,
+        alignItems: "center",
+    },
+    datePickerButtonText: {
+        color: "#000",
+    },
 });
