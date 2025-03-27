@@ -17,9 +17,10 @@ import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
 import {
     fetchUserBudgetKeys,
     fetchUserBudget,
-    fetchSpendingPerCategoryByDate,
     fetchUserTransactionsByDate,
 } from "../backend/fetchData";
+
+import { fetchSpendingPerCategoryByDate } from "../backend/analyzeMonthlySpending";
 import { setBudget, addSpending } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
@@ -86,7 +87,8 @@ export default function Statistics() {
                     await fetchSpendingPerCategoryByDate(
                         userID,
                         monthStartDate,
-                        monthEndDate
+                        monthEndDate,
+                        budgetKeys //fetches current categories the user has transactions in
                     );
                 console.log(
                     "from statistics, spending per category:",
@@ -96,7 +98,7 @@ export default function Statistics() {
                 if (budgetKeys && userBudgets && spendingPerCategory) {
                     const newBudgets = budgetKeys.map((key) => ({
                         category: key,
-                        amount: spendingPerCategory[key]["total"] || 0,
+                        amount: spendingPerCategory[key]?.["total"] || 0,
                         limit: userBudgets[key] || 0,
                         icon: (iconDict[key] as IconSymbolName) || "null",
                     }));
