@@ -256,7 +256,7 @@ export default function HomeTab() {
       
       setSpendingData(prev => ({ ...prev, loading: true }));
       try {
-        const data = await fetchSpendingDataByPeriod(user.uid, view);
+        const data = await fetchSpendingDataByPeriod(user.uid, selectedPeriod);
         setSpendingData({
           loading: false,
           data: data,
@@ -295,7 +295,7 @@ export default function HomeTab() {
       case 0:
         return (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>Budget vs Spending ({view})</Text>
+            <Text style={styles.chartTitle}>Budget vs Spending ({selectedPeriod})</Text>
 
             {/* Show loading indicator if data is loading */}
             {spendingData.loading ? (
@@ -382,7 +382,7 @@ export default function HomeTab() {
                 bgColor="#E6E6FA"
                 rotation={-90}
                 >
-                <Text style={styles.expensesLabel}>Expenses ({view})</Text>
+                <Text style={styles.expensesLabel}>Expenses ({selectedPeriod})</Text>
                 <Text style={styles.expensesAmount}>
                     ${displayData.totalSpent.toLocaleString()}
                 </Text>
