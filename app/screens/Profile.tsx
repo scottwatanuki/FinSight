@@ -267,7 +267,7 @@ export default function Profile() {
           {/* Card Section with improved design */}
           <View style={styles.cardContainer}>
             <View style={styles.cardHeader}>
-              <Text style={styles.cardHeaderTitle}>Payment Method</Text>
+              <Text style={styles.cardHeaderTitle}>Your Card</Text>
             </View>
             <View style={styles.cardContent}>
               <View style={styles.cardLeftSection}>
@@ -286,7 +286,10 @@ export default function Profile() {
           <View style={styles.optionsContainer}>
             <Text style={styles.sectionTitle}>Settings</Text>
 
-            <TouchableOpacity style={styles.optionItem}>
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => router.push("/change-password")}
+            >
               <Feather
                 name="lock"
                 size={22}
@@ -297,7 +300,15 @@ export default function Profile() {
               <Feather name="chevron-right" size={22} color="#CCCCCC" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem}>
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() =>
+                Alert.alert(
+                  "Coming Soon",
+                  "Payment methods management will be available in the next update."
+                )
+              }
+            >
               <Feather
                 name="credit-card"
                 size={22}
@@ -308,18 +319,15 @@ export default function Profile() {
               <Feather name="chevron-right" size={22} color="#CCCCCC" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.optionItem}>
-              <Feather
-                name="globe"
-                size={22}
-                color="#666"
-                style={styles.optionIcon}
-              />
-              <Text style={styles.optionText}>Language</Text>
-              <Feather name="chevron-right" size={22} color="#CCCCCC" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionItem}>
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() =>
+                Alert.alert(
+                  "Coming Soon",
+                  "Notification preferences will be available in the next update."
+                )
+              }
+            >
               <Feather
                 name="bell"
                 size={22}
@@ -327,17 +335,6 @@ export default function Profile() {
                 style={styles.optionIcon}
               />
               <Text style={styles.optionText}>Notifications</Text>
-              <Feather name="chevron-right" size={22} color="#CCCCCC" />
-            </TouchableOpacity>
-
-            <TouchableOpacity style={styles.optionItem}>
-              <Feather
-                name="info"
-                size={22}
-                color="#666"
-                style={styles.optionIcon}
-              />
-              <Text style={styles.optionText}>About</Text>
               <Feather name="chevron-right" size={22} color="#CCCCCC" />
             </TouchableOpacity>
           </View>

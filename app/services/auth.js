@@ -4,6 +4,9 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  updatePassword,
+  EmailAuthProvider,
+  reauthenticateWithCredential,
 } from "firebase/auth";
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -96,4 +99,59 @@ export const logoutUser = async () => {
 
 export const getCurrentUser = () => {
   return auth.currentUser;
+};
+
+export const changePassword = async (currentPassword, newPassword) => {
+  try {
+    const user = auth.currentUser;
+
+    if (!user) {
+      return {
+        success: false,
+        error: "User not authenticated",
+      };
+    }
+
+    // Reauthenticate the user with their current password
+    const credential = EmailAuthProvider.credential(
+      user.email,
+      currentPassword
+    );
+    await reauthenticateWithCredential(user, credential);
+
+    // Update the password
+    await updatePassword(user, newPassword);
+
+    return { success: true };
+  } catch (error) {
+    console.error("Password change error:", error);
+
+    // Provide more specific error messages based on Firebase error codes
+    if (
+      error.code === "auth/wrong-password" ||
+      error.code === "auth/invalid-credential"
+    ) {
+      return {
+        success: false,
+        error: "Current password is incorrect. Please check and try again.",
+      };
+    } else if (error.code === "auth/weak-password") {
+      return {
+        success: false,
+        error:
+          "New password is too weak. It should be at least 6 characters long.",
+      };
+    } else if (error.code === "auth/requires-recent-login") {
+      return {
+        success: false,
+        error:
+          "For security reasons, please log out and log back in before changing your password.",
+      };
+    }
+
+    return {
+      success: false,
+      error: error.message || "Failed to change password. Please try again.",
+    };
+  }
 };

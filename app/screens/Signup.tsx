@@ -91,7 +91,7 @@ export default function Signup() {
         <View style={styles.inputContainer}>
           <TextInput
             style={styles.input}
-            placeholder="Username"
+            placeholder="Name"
             value={username}
             onChangeText={setUsername}
             autoCapitalize="none"
