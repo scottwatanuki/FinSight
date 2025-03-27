@@ -174,6 +174,83 @@ async function fetchSpendingHistoryByCategory(
     }
 }
 
+function getDateRange(period) {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (period) {
+        case 'Daily':
+            startDate = new Date(now.setHours(0, 0, 0, 0));
+            endDate = new Date(now.setHours(23, 59, 59, 999));
+            break;
+        case 'Weekly':
+            startDate = new Date(now.setDate(now.getDate() - now.getDay()));
+            endDate = new Date(now.setDate(now.getDate() + 6));
+            break;
+        case 'Monthly':
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            break;
+        case 'Yearly':
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = new Date(now.getFullYear(), 11, 31);
+            break;
+        default:
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    }
+    return {
+        startDate: Timestamp.fromDate(startDate),
+        endDate: Timestamp.fromDate(endDate)
+    };
+}
+
+async function fetchSpendingDataByPeriod(userID, period) {
+    try {
+        const { startDate, endDate } = getDateRange(period);
+        const budget = await fetchUserBudget(userID);
+        const transactions = await fetchUserTransactionsByDate(userID, startDate, endDate);
+
+        let totalSpent = 0;
+        let spendingByCategory = {};
+
+        transactions.forEach(transaction => {
+            totalSpent += transaction.amount;
+            spendingByCategory[transaction.category] = (spendingByCategory[transaction.category] || 0) + transaction.amount;
+        });
+
+        let totalBudget = 0;
+        Object.values(budget || {}).forEach(amount => {
+            totalBudget += amount;
+        });
+
+        return {
+            categories: Object.keys(budget || {}).map(category => ({
+                name: category,
+                spent: spendingByCategory[category] || 0,
+                budget: budget[category] || 0,
+                color: getCategoryColor(category)
+            })),
+            totalSpent,
+            totalBudget,
+            percentage: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
+        };
+    } catch (error) {
+        console.error("Error fetching spending data by period:", error);
+        return null;
+    }
+}
+
+function getCategoryColor(category) {
+    const colors = {
+        food: "#4CAF50",
+        bills: "#6C63FF",
+        shopping: "#FF8A65",
+        health: "#42A5F5"
+    };
+    return colors[category.toLowerCase()] || "#999999";
+}
+
 // Call function for testing
 // fetchTotalSpendingPerCategory("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
 
@@ -184,4 +261,6 @@ module.exports = {
     fetchUserTransactionsByDate,
     fetchSpendingHistoryByCategory,
     fetchAllUserTransactions,
+    fetchSpendingDataByPeriod,
+    getDateRange
 };

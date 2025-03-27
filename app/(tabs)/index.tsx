@@ -1,4 +1,3 @@
-// app/(tabs)/index.tsx - Enhanced with additional UI components
 import React, { useState, useEffect } from "react";
 import {
   View,
@@ -17,16 +16,12 @@ import { Feather } from "@expo/vector-icons";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import DropDownPicker from "react-native-dropdown-picker";
+import { fetchSpendingDataByPeriod } from "../backend/fetchData";
 
-// Import our custom components
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
-import SavingsGoalCard from "../../components/SavingsGoalCard";
-import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import MonthlySpendingChart from "../../components/MonthlySpendingChart";
 
-
-// Import our custom hook
 import { useSpendingData } from "../../hooks/useSpendingData";
 
 const styles = StyleSheet.create({
@@ -36,7 +31,7 @@ const styles = StyleSheet.create({
   },
   scrollContainer: {
     padding: 20,
-    paddingBottom: 80, // Extra padding for tab bar
+    paddingBottom: 80,
   },
   header: {
     alignItems: "center",
@@ -222,16 +217,20 @@ const styles = StyleSheet.create({
 });
 
 export default function HomeTab() {
-  const [view, setView] = useState("Weekly");
-  const [viewOpen, setViewOpen] = useState(false);
-  const { user } = useAuth();
-  const router = useRouter();
-  const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
-  const [userData, setUserData] = useState(null);
-  const [activeTab, setActiveTab] = useState(0); // For paging between different visualizations
-
+    const [view, setView] = useState("Weekly");
+    const [viewOpen, setViewOpen] = useState(false);
+    const { user } = useAuth();
+    const router = useRouter();
+    const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
+    const [userData, setUserData] = useState(null);
+    const [activeTab, setActiveTab] = useState(0); // For paging between different visualizations
+    const [spendingData, setSpendingData] = useState({
+      loading: true,
+      data: null,
+      error: null
+    });
   // Use our custom hook to get spending data
-  const spendingData = useSpendingData(user?.uid, selectedPeriod);
+  const spendingDataHook = useSpendingData(user?.uid, selectedPeriod);
 
   // Fetch user profile data
   useEffect(() => {
@@ -251,12 +250,32 @@ export default function HomeTab() {
     fetchUserData();
   }, [user]);
 
-  // Default values if data isn't loaded yet
-  const userName = userData?.username || "Brie Larson";
-  const avatarUrl =
-    userData?.profilePicture || "https://i.pravatar.cc/300?img=5";
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      
+      setSpendingData(prev => ({ ...prev, loading: true }));
+      try {
+        const data = await fetchSpendingDataByPeriod(user.uid, view);
+        setSpendingData({
+          loading: false,
+          data: data,
+          error: null
+        });
+      } catch (error) {
+        setSpendingData({
+          loading: false,
+          data: null,
+          error: error
+        });
+      }
+    };
 
-  // Fallback data for demo purposes
+    fetchData();
+  }, [user, view]);
+
+  const userName = userData?.username;
+
   const fallbackData = {
     categories: [
       { name: "Food", spent: 450, budget: 500, color: "#4CAF50" },
@@ -269,29 +288,14 @@ export default function HomeTab() {
     percentage: 75,
   };
 
-  // Use real data if available, otherwise use fallback
-  const displayData =
-    spendingData.loading || spendingData.error ? fallbackData : fallbackData;
+  const displayData = spendingData.data || fallbackData;
 
-  // Navigation handlers
-
-  const handleViewAllInsights = () => {
-    // This would navigate to a detailed insights page
-    // router.push("/insights");
-  };
-
-  const handleSavingsGoalPress = () => {
-    // This would navigate to a savings goal detail page
-    // router.push("/savings/goal/1");
-  };
-
-  // Render the appropriate chart based on the active tab
   const renderActiveChart = () => {
     switch (activeTab) {
       case 0:
         return (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>Budget vs Spending</Text>
+            <Text style={styles.chartTitle}>Budget vs Spending ({view})</Text>
 
             {/* Show loading indicator if data is loading */}
             {spendingData.loading ? (
@@ -339,42 +343,29 @@ export default function HomeTab() {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* Header Section */}
-        {/* <View style={styles.header}>
-          <Text style={styles.headerText}>Home</Text>
-        </View> */}
-
-        {/* User Greeting Section with Avatar */}
-        <View style={styles.greetingContainer}>
-          <View style={styles.greetingTextContainer}>
-            <Text style={styles.greetingText}>Hey, {userName}!</Text>
-          </View>
-          <TouchableOpacity style={styles.notificationButton}>
-            <Feather name="bell" size={24} color="#4C38CD" />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>3</Text>
-            </View>
-          </TouchableOpacity>
+        {/* User Greeting Section at the top, but centered */}
+        <View style={[styles.greetingContainer, { justifyContent: 'center' }]}>
+          <Text style={[styles.greetingText, { textAlign: 'center' }]}>Hey, {userName}!</Text>
         </View>
-     
+
         {/* Total Expenses Section */}
         <View style={styles.expensesContainer}>
           <DropDownPicker
-                      open={viewOpen}
-                      value={view}
-                      items={[
-                          { label: "Daily", value: "Daily" },
-                          { label: "Weekly", value: "Weekly" },
-                          { label: "Monthly", value: "Monthly" },
-                          { label: "Yearly", value: "Yearly" },
-                      ]}
-                      setOpen={setViewOpen}
-                      setValue={setView}
-                      style={styles.viewDropdown}
-                      textStyle={styles.viewDropdownText}
-                      dropDownContainerStyle={styles.viewDropdownContainer}
-                      containerStyle={styles.viewDropdownContainerStyle}
-                  />
+            open={viewOpen}
+            value={view}
+            items={[
+                { label: "Daily", value: "Daily" },
+                { label: "Weekly", value: "Weekly" },
+                { label: "Monthly", value: "Monthly" },
+                { label: "Yearly", value: "Yearly" },
+            ]}
+            setOpen={setViewOpen}
+            setValue={setView}
+            style={styles.viewDropdown}
+            textStyle={styles.viewDropdownText}
+            dropDownContainerStyle={styles.viewDropdownContainer}
+            containerStyle={styles.viewDropdownContainerStyle}
+          />
           {/* Show loading indicator if data is loading */}
           {spendingData.loading ? (
             <View style={styles.loadingContainer}>
@@ -382,76 +373,25 @@ export default function HomeTab() {
             </View>
           ) : (
             <>
-              {/* Progress Circle using our component */}
+              {/* Progress Circle using our component with modified props */}
               <CircularProgress
                 percentage={displayData.percentage}
                 size={240}
                 strokeWidth={20}
-                color="#6C63FF"
+                useDynamicColor={true}
                 bgColor="#E6E6FA"
-              >
-                <Text style={styles.expensesLabel}>Expenses</Text>
+                rotation={-90}
+                >
+                <Text style={styles.expensesLabel}>Expenses ({view})</Text>
                 <Text style={styles.expensesAmount}>
-                  ${displayData.totalSpent.toLocaleString()}
+                    ${displayData.totalSpent.toLocaleString()}
                 </Text>
                 <Text style={styles.expensesMax}>
-                  Out of ${displayData.totalBudget.toLocaleString()}
+                    Out of ${displayData.totalBudget.toLocaleString()}
                 </Text>
-              </CircularProgress>
+            </CircularProgress>
             </>
           )}
-
-          {/* Period Selector Tabs */}
-          <View style={styles.periodTabs}>
-            <TouchableOpacity
-              style={[
-                styles.periodTab,
-                selectedPeriod === "W" && styles.periodTabActive,
-              ]}
-              onPress={() => setSelectedPeriod("W")}
-            >
-              <Text
-                style={[
-                  styles.periodTabText,
-                  selectedPeriod === "W" && styles.periodTabTextActive,
-                ]}
-              >
-                W
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.periodTab,
-                selectedPeriod === "M" && styles.periodTabActive,
-              ]}
-              onPress={() => setSelectedPeriod("M")}
-            >
-              <Text
-                style={[
-                  styles.periodTabText,
-                  selectedPeriod === "M" && styles.periodTabTextActive,
-                ]}
-              >
-                M
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.periodTab,
-                selectedPeriod === "Y" && styles.periodTabActive,
-              ]}
-              onPress={() => setSelectedPeriod("Y")}
-            >
-              <Text
-                style={[
-                  styles.periodTabText,
-                  selectedPeriod === "Y" && styles.periodTabTextActive,
-                ]}
-              >
-                Y
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
 
         {/* Spending Trends Section */}
@@ -486,19 +426,6 @@ export default function HomeTab() {
             />
           </View>
         </View>
-
-        {/* Savings Goal Card */}
-        <SavingsGoalCard
-          title="New Car"
-          currentAmount={3500}
-          targetAmount={15000}
-          deadline="Dec 2023"
-          onPress={handleSavingsGoalPress}
-        />
-
-
-        {/* Financial Insights */}
-        <FinancialInsightsCard onViewAll={handleViewAllInsights} />
       </ScrollView>
     </SafeAreaView>
   );
