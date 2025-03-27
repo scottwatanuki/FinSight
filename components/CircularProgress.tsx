@@ -1,5 +1,6 @@
 import React from "react";
 import { View, StyleSheet, ViewStyle } from "react-native";
+import Svg, { Circle, G } from "react-native-svg";
 
 interface CircularProgressProps {
   percentage: number;
@@ -9,7 +10,20 @@ interface CircularProgressProps {
   bgColor?: string;
   children?: React.ReactNode;
   style?: ViewStyle;
+  rotation?: number;
+  useDynamicColor?: boolean;
 }
+
+// Helper function to determine color based on percentage
+const getBudgetColor = (percentage: number): string => {
+  if (percentage <= 50) {
+    return "#4CAF50"; // Green for good (under 50%)
+  } else if (percentage <= 80) {
+    return "#FFA726"; // Orange for warning (50-80%)
+  } else {
+    return "#F44336"; // Red for over budget (above 80%)
+  }
+};
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
   percentage,
@@ -19,58 +33,54 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   bgColor = "#E6E6FA",
   children,
   style,
+  rotation = -90, // Default to -90 to start from top (north)
+  useDynamicColor = false, // Default to not use dynamic coloring
 }) => {
-  // Calculate the actual circle dimensions
-  const circleSize = size - strokeWidth;
-  const radius = circleSize / 2;
+  // Calculate the SVG dimensions and values
+  const center = size / 2;
+  const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-
-  // Calculate the actual progress for the arc
-  // We're using a semi-circle (bottom half) for our visualization
-  // so we adjust the percentage to work with half a circle
-  const strokeDashoffset =
-    circumference - (percentage / 100) * (circumference / 2);
-
-  // Calculate the rotation angle to position the arc correctly
-  const rotationAngle = -90 + ((percentage / 100) * 180) / 2;
+  
+  // Calculate the stroke dashoffset based on the percentage
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
+  
+  // Use dynamic color if requested
+  const progressColor = useDynamicColor ? getBudgetColor(percentage) : color;
 
   return (
     <View style={[styles.container, { width: size, height: size }, style]}>
-      {/* Background Circle */}
-      <View
-        style={[
-          styles.circle,
-          {
-            width: circleSize,
-            height: circleSize,
-            borderRadius: radius,
-            borderWidth: strokeWidth,
-            borderColor: bgColor,
-          },
-        ]}
-      />
-
-      {/* Progress Arc */}
-      <View
-        style={[
-          styles.arc,
-          {
-            width: circleSize,
-            height: circleSize,
-            borderRadius: radius,
-            borderWidth: strokeWidth,
-            borderTopColor: "transparent",
-            borderRightColor: "transparent",
-            borderLeftColor: color,
-            borderBottomColor: color,
-            transform: [{ rotate: `${rotationAngle}deg` }],
-            opacity: percentage > 0 ? 1 : 0,
-          },
-        ]}
-      />
-
-      {/* Content inside the circle */}
-      <View style={styles.content}>{children}</View>
+      {/* SVG Circle Progress */}
+      <Svg width={size} height={size} style={styles.svg}>
+        <G rotation={rotation} origin={`${center}, ${center}`}>
+          {/* Background Circle */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={bgColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+          />
+          
+          {/* Progress Circle */}
+          <Circle
+            cx={center}
+            cy={center}
+            r={radius}
+            stroke={progressColor}
+            strokeWidth={strokeWidth}
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap="round"
+          />
+        </G>
+      </Svg>
+      
+      {/* Content in the center of the circle */}
+      <View style={styles.content}>
+        {children}
+      </View>
     </View>
   );
 };
@@ -81,20 +91,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  circle: {
+  svg: {
     position: "absolute",
-    borderColor: "#E6E6FA",
-  },
-  arc: {
-    position: "absolute",
-    borderTopColor: "transparent",
-    borderRightColor: "transparent",
-    transform: [{ rotate: "-90deg" }],
   },
   content: {
-    alignItems: "center",
+    position: "absolute",
     justifyContent: "center",
-    zIndex: 2,
+    alignItems: "center",
   },
 });
 
