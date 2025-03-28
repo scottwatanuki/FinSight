@@ -272,4 +272,5 @@ monthlyMedianSpending(mockUserID);
 module.exports = {
     fetchSpendingPerCategoryByDate,
     fetchTotalSpendingPerCategory,
+    monthlyMedianSpending,
 };

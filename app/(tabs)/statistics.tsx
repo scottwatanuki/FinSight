@@ -20,7 +20,7 @@ import {
     fetchUserBudget,
     fetchUserTransactionsByDate,
 } from "../backend/fetchData";
-import { fetchSpendingPerCategoryByDate } from "../backend/analyzeMonthlySpending";
+import { fetchSpendingPerCategoryByDate, monthlyMedianSpending } from "../backend/analyzeMonthlySpending";
 import { setBudget, addSpending, deleteTransaction, resetBudget, resetAllBudgets } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
@@ -42,18 +42,25 @@ export default function Statistics() {
     const userID = user?.uid;
 
     const iconDict: { [key: string]: IconSymbolName } = {
-        shopping: "cart.fill",
+        entertainment: "film.fill",
+        travel: "airplane",
         bills: "calendar",
-        food: "fork.knife",
-        health: "heart.text.clipboard.fill",
+        groceries: "cart.fill",
+        dining: "fork.knife",
+        subscriptions: "newspaper.fill",
+        transportation: "car.fill",
+        recreational: "gamecontroller.fill",
+        shopping: "bag.fill",
+        health: "heart.fill",
+        misc: "ellipsis",
     };
     const [isModalVisible, setModalVisible] = useState(false);
     const [isSpendingModalVisible, setSpendingModalVisible] = useState(false);
-    const [category, setCategory] = useState("Shopping");
-    const [frequency, setFrequency] = useState("Daily");
+    const [category, setCategory] = useState("");
+    const [frequency, setFrequency] = useState("");
     const [amount, setAmount] = useState("");
 
-    const [spendingCategory, setSpendingCategory] = useState("food"); //adding spending to history
+    const [spendingCategory, setSpendingCategory] = useState(""); //adding spending to history
     const [spendingAmount, setSpendingAmount] = useState("");
     const [spendingDescription, setSpendingDescription] = useState("");
     const [spendingDate, setSpendingDate] = useState(new Date());
@@ -67,6 +74,9 @@ export default function Statistics() {
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshData, setRefreshData] = useState(false);
+    const [predictedMonthlySpending, setPredictedMonthlySpending] = useState(null);
+    const [filterCategory, setFilterCategory] = useState(null); // State for selected filter category
+    const [filterOpen, setFilterOpen] = useState(false);
 
     const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
 
@@ -176,12 +186,27 @@ export default function Statistics() {
                     "from statistics, total transactons:",
                     transactions.length
                 );
+                const fetchPredictedSpending = async () => {
+                    try {
+                        const fetchedData = await monthlyMedianSpending(userID);
+                        setPredictedMonthlySpending(fetchedData);
+                    } catch (error) {
+                        console.error("Error fetching predicted spending data:", error);
+                    } finally {
+                        setIsLoading(false); // Set loading to false
+                    }
+                };
+            
+                fetchPredictedSpending();
+                const predictedMonthlySpending = await monthlyMedianSpending(userID);
+                console.log("predicted spending amount", predictedMonthlySpending)
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
                         id: transaction.id,
                         category: transaction.category,
                         name: transaction["description"],
                         amount: transaction["amount"],
+                        category: transaction["category"],
                         date: transaction["date"].toDate().toLocaleDateString(),
                     }));
                     setHistory(newHistory);
@@ -194,7 +219,10 @@ export default function Statistics() {
             }
         };
         fetchBudgets();
+       
     }, [userID, refreshData]);
+
+
 
     const handleAddSpending = async () => {
         if (!userID) {
@@ -234,13 +262,13 @@ export default function Statistics() {
         setModalVisible(!isModalVisible);
     };
 
-    const toggleSpendingModal = () => {
-        setSpendingCategory("food"); // Reset to default category
-        setSpendingAmount("");
-        setSpendingDescription("");
-        setSpendingDate(new Date());
-        setSpendingModalVisible(!isSpendingModalVisible); // Toggle only the "Add Spending" modal
+    const filterTransactions = (transactions, category) => {
+
+        return transactions.filter(transaction => {
+            return transaction.category == category;
+        });
     };
+
     if (authLoading || isLoading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
@@ -259,6 +287,13 @@ export default function Statistics() {
             </SafeAreaView>
         );
     }
+
+    const getFilteredHistory = () => {
+        if (!filterCategory) {
+            return history; // If no category is selected, return all items
+        }
+        return history.filter((item) => item.category === filterCategory);
+    };
 
     const handleAddBudget = () => {
         const budgetData = {
@@ -280,52 +315,54 @@ export default function Statistics() {
         // Transform or filter budgets based on the selected view
         switch (view) {
             case "Daily":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount / 30,
-                    limit: budget.limit / 30,
-                }));
+                return budgets.map((budget) => {
+                    return {
+                            ...budget,
+                            amount: budget.amount/30,
+                            limit: budget.limit/30,
+                        };
+                });
             case "Weekly":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount / 4,
-                    limit: budget.limit / 4,
-                }));
+                return budgets.map((budget) => {
+                        return {
+                            ...budget,
+                            amount: budget.amount/7,
+                            limit: budget.limit/7,
+                        };
+                });
             case "Monthly":
-                return budgets;
+                return budgets.map((budget) => {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit
+                        };
+                    
+                });
             case "Yearly":
-                return budgets.map((budget) => ({
-                    ...budget,
-                    amount: budget.amount * 12,
-                    limit: budget.limit * 12,
-                }));
+                return budgets.map((budget) => {
+                        return {
+                            ...budget,
+                            amount: budget.amount*12,
+                            limit: budget.limit*12,
+                        };
+                });
             default:
                 return budgets;
         }
     };
 
     return (
+        
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
-                <View style={styles.headerButtonsContainer}>
-                    <TouchableOpacity
-                        style={styles.headerButton}
-                        onPress={toggleModal}
-                    >
-                        <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
-                    </TouchableOpacity>
-                    
-                    <TouchableOpacity
-                        style={styles.headerButton}
-                        onPress={() => toggleResetModal()}
-                    >
-                        <IconSymbol size={28} name="arrow.counterclockwise" color="#FF5757" />
-                    </TouchableOpacity>
-                </View>
-            </View>
-
-            <View style={styles.expensesContainer}>
+                <TouchableOpacity
+                    style={styles.headerButton}
+                    onPress={toggleModal}
+                >
+                    <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
+                </TouchableOpacity>
                 <DropDownPicker
                     open={viewOpen}
                     value={view}
@@ -348,57 +385,84 @@ export default function Statistics() {
                 contentContainerStyle={styles.scrollView}
                 style={styles.fixedScrollView}
             >
-                {getFilteredBudgets().map((budget, index) => (
-                    <TouchableOpacity 
-                        key={index} 
-                        style={styles.card}
-                        onLongPress={() => toggleResetModal(budget)}
-                    >
-                        <IconSymbol
-                            size={28}
-                            name={budget.icon}
-                            color="#9e9ded"
-                        />
-                        <Text style={styles.category}>{budget.category}</Text>
-                        <View style={styles.amountContainer}>
-                            <Text style={styles.amount}>
-                                ${budget.amount.toFixed(2)}
-                            </Text>
-                            <Text style={styles.limit}>
-                                of ${budget.limit.toFixed(2)}
-                            </Text>
+                {getFilteredBudgets().length > 0 ? (
+                    getFilteredBudgets().map((budget, index) => (
+                        <View key={index} style={styles.card}>
+                            <IconSymbol
+                                size={28}
+                                name={budget.icon}
+                                color="#9e9ded"
+                            />
+                            <Text style={styles.category}>{budget.category}</Text>
+                            <View style={styles.amountContainer}>
+                                <Text style={styles.limit}>
+                                    ${budget.amount.toFixed(2)} spent of
+                                </Text>
+                                <Text style={styles.amount}>
+                                    ${budget.limit.toFixed(2)} 
+                                </Text>
+                            </View>
                         </View>
-                    </TouchableOpacity>
-                ))}
+                    ))
+                ) : (
+                    <Text style={styles.noBudgetsText}>Add Your Budgets To Get Started!</Text>
+                )}
             </ScrollView>
             
-            <View style={styles.historyHeaderContainer}>
-                <Text style={[styles.subtitle, styles.historySubtitle]}>
+            <View style={styles.historyHeaderContainer}> 
+                <Text style={styles.historySubtitle}>
                     History
                 </Text>
+                
                 <TouchableOpacity
                     style={styles.addBudgetButton}
                     onPress={() => setSpendingModalVisible(true)}
                 >
                     <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
                 </TouchableOpacity>
+                    <DropDownPicker
+                    open={filterOpen}
+                    value={filterCategory}
+                    items={[
+                        { label: "All Categories", value: null },
+                        { label: "Entertainment", value: "entertainment" },
+                        { label: "Travel", value: "travel" },
+                        { label: "Bills", value: "bills" },
+                        { label: "Groceries", value: "groceries" },
+                        { label: "Dining", value: "dining" },
+                        { label: "Subscriptions", value: "subscriptions" },
+                        { label: "Transportation", value: "transportation" },
+                        { label: "Recreational", value: "recreational" },
+                        { label: "Shopping", value: "shopping" },
+                        { label: "Health", value: "health" },
+                        { label: "Misc", value: "misc" },
+                    ]}
+                    setOpen={setFilterOpen}
+                    setValue={setFilterCategory}
+                    placeholder="All Categories"
+                    style={styles.filterDropdown}
+                    textStyle={styles.filterDropdownText}
+                    dropDownContainerStyle={styles.filterDropdownContainer}
+                />
             </View>
             
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
-                {history.map((item, index) => (
-                    <TouchableOpacity 
-                        key={index} 
+                {getFilteredHistory().map((item) => (
+                    <View key={item.id} style={{ marginBottom: 16 }}>
+                        <TouchableOpacity 
                         style={styles.historyCard}
                         onLongPress={() => toggleDeleteTransactionModal(item)}
                     >
                         <View style={styles.historyTextContainer}>
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
+                            <Text style={styles.historyCategory}>{item.category}</Text>
                         </View>
                         <Text style={styles.historyAmount}>
                             ${item.amount.toFixed(2)}
                         </Text>
                     </TouchableOpacity>
+                    </View>
                 ))}
             </ScrollView>
             <Modal
@@ -406,23 +470,35 @@ export default function Statistics() {
                 onBackdropPress={() => setSpendingModalVisible(false)}
             >
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add Spending</Text>
+                    <Text style={styles.modalTitle}>Add Expense</Text>
+                    <TouchableOpacity
+                        style={styles.closeButton}
+                        onPress={() =>setSpendingModalVisible(false)}
+                    >
+                        <IconSymbol size={20} name="xmark" color="#000" />
+                    </TouchableOpacity>
                     <DropDownPicker
                         open={categoryOpen}
                         value={spendingCategory}
                         items={[
-                            { label: "Food", value: "food" },
+                            { label: "Entertainment", value: "entertainment" },
+                            { label: "Travel", value: "travel" },
                             { label: "Bills", value: "bills" },
-                            { label: "Health", value: "health" },
+                            { label: "Groceries", value: "groceries" },
+                            { label: "Dining", value: "dining" },
+                            { label: "Subscriptions", value: "subscriptions" },
+                            { label: "Transportation", value: "transportation" },
+                            { label: "Recreational", value: "recreational" },
                             { label: "Shopping", value: "shopping" },
+                            { label: "Health", value: "health" },
+                            { label: "Misc", value: "misc" },
                         ]}
                         setOpen={setCategoryOpen}
                         setValue={setSpendingCategory}
-                        style={styles.dropdown}
+                        style={styles.input}
                         placeholder="Category"
                         placeholderStyle={{ color: "grey" }}
                         containerStyle={[
-                            styles.dropdownContainer,
                             { zIndex: 1000 },
                         ]}
                     />
@@ -433,6 +509,7 @@ export default function Statistics() {
                         value={spendingAmount}
                         onChangeText={setSpendingAmount}
                         keyboardType="numeric"
+                        returnKeyType="done"
                     />
                     <TextInput
                         style={styles.input}
@@ -448,7 +525,7 @@ export default function Statistics() {
                         <Text style={styles.datePickerButtonText}>
                             {spendingDate.toLocaleDateString()}
                         </Text>
-                    </TouchableOpacity>
+                    
                     {showDatePicker && (
                         <DateTimePicker
                             value={spendingDate}
@@ -457,6 +534,7 @@ export default function Statistics() {
                             onChange={onChange}
                         />
                     )}
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddSpending}
@@ -467,7 +545,7 @@ export default function Statistics() {
             </Modal>
             <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Add Budget</Text>
+                    <Text style={styles.modalTitle}>Edit Budget</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
                         onPress={toggleModal}
@@ -479,13 +557,22 @@ export default function Statistics() {
                         open={categoryOpen}
                         value={category}
                         items={[
-                            { label: "Shopping", value: "Shopping" },
-                            { label: "Bills", value: "Bills" },
-                            { label: "Food", value: "Food" },
-                            { label: "Health", value: "Health" },
+                            { label: "Entertainment", value: "entertainment" },
+                            { label: "Travel", value: "travel" },
+                            { label: "Bills", value: "bills" },
+                            { label: "Groceries", value: "groceries" },
+                            { label: "Dining", value: "dining" },
+                            { label: "Subscriptions", value: "subscriptions" },
+                            { label: "Transportation", value: "transportation" },
+                            { label: "Recreational", value: "recreational" },
+                            { label: "Shopping", value: "shopping" },
+                            { label: "Health", value: "health" },
+                            { label: "Misc", value: "misc" },
                         ]}
                         setOpen={setCategoryOpen}
-                        setValue={setCategory}
+                        setValue={(value) => {
+                            setCategory(value); // Update the category state
+                        }}
                         style={styles.dropdown}
                         placeholder="Category"
                         placeholderStyle={{
@@ -500,10 +587,10 @@ export default function Statistics() {
                         open={frequencyOpen}
                         value={frequency}
                         items={[
-                            { label: "Daily", value: "Daily" },
-                            { label: "Weekly", value: "Weekly" },
+                            // { label: "Daily", value: "Daily" },
+                            // { label: "Weekly", value: "Weekly" },
                             { label: "Monthly", value: "Monthly" },
-                            { label: "Yearly", value: "Yearly" },
+                            // { label: "Yearly", value: "Yearly" },
                         ]}
                         setOpen={setFrequencyOpen}
                         setValue={setFrequency}
@@ -524,12 +611,18 @@ export default function Statistics() {
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType="numeric"
+                        returnKeyType="done"
                     />
+                    <Text style={styles.budgetPredictionText}>
+                        {predictedMonthlySpending?.[category]?.predictedAmount
+                            ? `Predicted spending for ${category}:\n $${predictedMonthlySpending[category].predictedAmount.toFixed(2)}`
+                            : ""}
+                    </Text>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddBudget}
                     >
-                        <Text style={styles.addButtonText}>Add</Text>
+                        <Text style={styles.addButtonText}>Done</Text>
                     </TouchableOpacity>
                 </View>
             </Modal>
@@ -609,14 +702,18 @@ const styles = StyleSheet.create({
     },
     
     headerButton: {
-        marginLeft: 10,
-        padding: 5,
+        marginLeft: -35,
+        padding: 0,
     },
     
     expensesContainer: {
         marginTop: 0, // Reduced top margin
         marginBottom: 0, // Reduced bottom margin
         alignItems: "center",
+    },
+    budgetsDropdown: {  
+        marginLeft: 10,
+
     },
     
     viewDropdown: {
@@ -650,6 +747,8 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
+        height: 600,
+ 
     },
     title: {
         fontSize: 24,
@@ -662,21 +761,20 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         marginVertical: 5, // Reduce vertical margin
         paddingHorizontal: 16,
+        paddingLeft: -4,
     },
     historySubtitle: {
-        marginTop: 0, // Remove top margin
+        fontSize: 24,
+        fontWeight: "bold",
+        paddingHorizontal: 16,
+        marginLeft: -14,
     },
     scrollView: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
         paddingHorizontal: 16,
-        marginBottom: 0, // Remove bottom margin completely
-        paddingBottom: 0, // Ensure no padding at the bottom
-        maxHeight: "60%", // Limit the height to prevent excessive expansion
-    },
-    fixedScrollView: {
-        maxHeight: "60%", // Limit the ScrollView height
+        height: 800,
     },
     card: {
         backgroundColor: "#f8f7fc",
@@ -709,9 +807,9 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
-        marginTop: 0, // Remove top margin
-        marginBottom: 5,
-        paddingTop: 0, // Ensure no top padding
+        fontSize: 24,
+        fontWeight: "bold",
+        paddingHorizontal: 16,
     },
     historyCard: {
         backgroundColor: "#ffffff",
@@ -719,7 +817,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         padding: 16,
-        marginVertical: 8,
+        marginTop: 4,
         borderRadius: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -811,18 +909,23 @@ const styles = StyleSheet.create({
         fontSize: 18,
     },
     viewDropdown: {
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor: "#ccc",
         backgroundColor: "transparent",
-        paddingRight: 45,
-        marginLeft: 24,
+        maxWidth: 115,
+        marginBottom: 10,
+        marginLeft: 35,
     },
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
-        textAlign: "left",
+        
     },
     viewDropdownContainer: {
-        borderWidth: 0,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        maxWidth: 115,
+        marginLeft: 35,
     },
     viewDropdownContainerStyle: {
         width: 150,
@@ -855,36 +958,45 @@ const styles = StyleSheet.create({
     datePickerButtonText: {
         color: "#000",
     },
-    modalText: {
-        fontSize: 16,
-        marginBottom: 20,
-        textAlign: 'center',
-        lineHeight: 22,
+    filterDropdown: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 5,
+        marginBottom: 16,
+        maxWidth: 170,
+        marginLeft: 30,
+        marginTop: 15,
+        marginRight: 200,
     },
-    buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
+    filterDropdownText: {
+        fontSize: 14,
+        color: "#3C3ADD",
+        fontWeight: "bold",
     },
-    button: {
-        padding: 12,
-        borderRadius: 8,
-        flex: 1,
-        marginHorizontal: 5,
-        alignItems: 'center',
+    filterDropdownContainer: {
+        borderWidth: 1,
+        borderColor: "#ccc",
+        marginLeft: 30,
+        marginTop: 15,
+        maxWidth: 170,
     },
-    cancelButton: {
-        backgroundColor: '#E0E0E0',
+    historyCategory: {
+        fontSize: 14,
+        color: "#3C3ADD",
+        fontWeight: "bold",
     },
-    resetButton: {
-        backgroundColor: '#FF5757',
+    noBudgetsText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#939393",
+        textAlign: "center",
+        marginTop: 20,
     },
-    deleteButton: {
-        backgroundColor: '#FF5757',
-    },
-    buttonText: {
-        fontSize: 16,
-        fontWeight: 'bold',
-        color: 'white',
-    },
+    budgetPredictionText: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#3C3ADD",
+        textAlign: "center",
+        marginTop: 15,
+    }
 });
