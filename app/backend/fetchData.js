@@ -180,25 +180,38 @@ function getDateRange(period) {
 
     switch (period) {
         case 'Daily':
+            // Today
             startDate = new Date(now.setHours(0, 0, 0, 0));
-            endDate = new Date(now.setHours(23, 59, 59, 999));
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
             break;
         case 'Weekly':
-            startDate = new Date(now.setDate(now.getDate() - now.getDay()));
-            endDate = new Date(now.setDate(now.getDate() + 6));
+            // Current week (Sunday to Saturday)
+            const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+            startDate = new Date(now); // Clone current date
+            startDate.setDate(now.getDate() - day); // Go to beginning of week (Sunday)
+            startDate.setHours(0, 0, 0, 0);
+            
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6); // Saturday
+            endDate.setHours(23, 59, 59, 999);
             break;
         case 'Monthly':
+            // Current month
             startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
             break;
         case 'Yearly':
+            // Current year
             startDate = new Date(now.getFullYear(), 0, 1);
-            endDate = new Date(now.getFullYear(), 11, 31);
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
             break;
         default:
+            // Default to Monthly if period is invalid
             startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     }
+    
+    console.log(`Date range for ${period}: ${startDate.toISOString()} to ${endDate.toISOString()}`);
     return {
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate)
@@ -207,9 +220,34 @@ function getDateRange(period) {
 
 async function fetchSpendingDataByPeriod(userID, period) {
     try {
+        console.log(`Fetching spending data for user ${userID} with period ${period}`);
         const { startDate, endDate } = getDateRange(period);
         const budget = await fetchUserBudget(userID);
         const transactions = await fetchUserTransactionsByDate(userID, startDate, endDate);
+
+        console.log(`Found ${transactions.length} transactions for period ${period}`);
+        
+        // Process budget data for the selected period
+        let modifiedBudget = { ...budget };
+        
+        // Adjust budget amounts based on the period
+        if (period === 'Daily') {
+            // Scale down monthly budget to daily
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] / 30;
+            });
+        } else if (period === 'Weekly') {
+            // Scale down monthly budget to weekly
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] / 4;
+            });
+        } else if (period === 'Yearly') {
+            // Scale up monthly budget to yearly
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] * 12;
+            });
+        }
+        // Monthly remains as is
 
         let totalSpent = 0;
         let spendingByCategory = {};
@@ -220,24 +258,30 @@ async function fetchSpendingDataByPeriod(userID, period) {
         });
 
         let totalBudget = 0;
-        Object.values(budget || {}).forEach(amount => {
+        Object.values(modifiedBudget || {}).forEach(amount => {
             totalBudget += amount;
         });
 
-        return {
-            categories: Object.keys(budget || {}).map(category => ({
-                name: category,
-                spent: spendingByCategory[category] || 0,
-                budget: budget[category] || 0,
-                color: getCategoryColor(category)
-            })),
+        // Ensure we have data for all budget categories, even if there are no transactions
+        const categories = Object.keys(modifiedBudget || {}).map(category => ({
+            name: category,
+            spent: spendingByCategory[category] || 0,
+            budget: modifiedBudget[category] || 0,
+            color: getCategoryColor(category)
+        }));
+
+        const result = {
+            categories,
             totalSpent,
             totalBudget,
-            percentage: totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0
+            percentage: totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0
         };
+        
+        console.log("Processed spending data:", result);
+        return result;
     } catch (error) {
         console.error("Error fetching spending data by period:", error);
-        return null;
+        throw error;
     }
 }
 
