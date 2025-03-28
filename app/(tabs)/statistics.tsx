@@ -181,14 +181,10 @@ export default function Statistics() {
         setModalVisible(!isModalVisible);
     };
 
-    const filterTransactions = (transactions, period) => {
-        const now = new Date();
-        const pastDate = new Date(now);
-        pastDate.setDate(now.getDate() - parseInt(period));
+    const filterTransactions = (transactions, category) => {
 
         return transactions.filter(transaction => {
-            const transactionDate = new Date(transaction.date);
-            return transactionDate >= pastDate && transactionDate <= now;
+            return transaction.category == category;
         });
     };
 
@@ -350,6 +346,7 @@ export default function Statistics() {
     };
 
     return (
+        
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
@@ -380,24 +377,28 @@ export default function Statistics() {
                 contentContainerStyle={styles.scrollView}
                 style={styles.fixedScrollView}
             >
-                {getFilteredBudgets().map((budget, index) => (
-                    <View key={index} style={styles.card}>
-                        <IconSymbol
-                            size={28}
-                            name={budget.icon}
-                            color="#9e9ded"
-                        />
-                        <Text style={styles.category}>{budget.category}</Text>
-                        <View style={styles.amountContainer}>
-                            <Text style={styles.limit}>
-                                ${budget.amount.toFixed(2)} spent of
-                            </Text>
-                            <Text style={styles.amount}>
-                                ${budget.limit.toFixed(2)} 
-                            </Text>
+                {getFilteredBudgets().length > 0 ? (
+                    getFilteredBudgets().map((budget, index) => (
+                        <View key={index} style={styles.card}>
+                            <IconSymbol
+                                size={28}
+                                name={budget.icon}
+                                color="#9e9ded"
+                            />
+                            <Text style={styles.category}>{budget.category}</Text>
+                            <View style={styles.amountContainer}>
+                                <Text style={styles.limit}>
+                                    ${budget.amount.toFixed(2)} spent of
+                                </Text>
+                                <Text style={styles.amount}>
+                                    ${budget.limit.toFixed(2)} 
+                                </Text>
+                            </View>
                         </View>
-                    </View>
-                ))}
+                    ))
+                ) : (
+                    <Text style={styles.noBudgetsText}>Add Your Budgets To Get Started!</Text>
+                )}
             </ScrollView>
             
             <View style={styles.historyHeaderContainer}> 
@@ -414,9 +415,9 @@ export default function Statistics() {
                     open={filterOpen}
                     value={filterPeriod}
                     items={[
-                        { label: "30 days", value: "30" },
-                        { label: "60 days", value: "60" },
-                        { label: "90 days", value: "90" },
+                        { label: "Bills", value: "bills" },
+                        { label: "Shopping", value: "shopping" },
+                        { label: "Health", value: "health" },
                     ]}
                     setOpen={setFilterOpen}
                     setValue={setFilterPeriod}
@@ -447,7 +448,7 @@ export default function Statistics() {
                     <Text style={styles.modalTitle}>Add Expense</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
-                        onPress={() => setSpendingModalVisible(false)}
+                        onPress={() =>setSpendingModalVisible(false)}
                     >
                         <IconSymbol size={20} name="xmark" color="#000" />
                     </TouchableOpacity>
@@ -469,11 +470,10 @@ export default function Statistics() {
                         ]}
                         setOpen={setCategoryOpen}
                         setValue={setSpendingCategory}
-                        style={styles.dropdown}
+                        style={styles.input}
                         placeholder="Category"
                         placeholderStyle={{ color: "grey" }}
                         containerStyle={[
-                            styles.dropdownContainer,
                             { zIndex: 1000 },
                         ]}
                     />
@@ -499,7 +499,7 @@ export default function Statistics() {
                         <Text style={styles.datePickerButtonText}>
                             {spendingDate.toLocaleDateString()}
                         </Text>
-                    </TouchableOpacity>
+                    
                     {showDatePicker && (
                         <DateTimePicker
                             value={spendingDate}
@@ -508,6 +508,7 @@ export default function Statistics() {
                             onChange={onChange}
                         />
                     )}
+                    </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddSpending}
@@ -583,6 +584,7 @@ export default function Statistics() {
                         onChangeText={setAmount}
                         keyboardType="numeric"
                     />
+                    <Text style={styles.budgetPredictionText}>The predicted amount you will spend in this category for the month is </Text>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddBudget}
@@ -611,7 +613,7 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
-        marginBottom: 150,
+ 
     },
     title: {
         fontSize: 24,
@@ -635,8 +637,8 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginBottom: 0,
         paddingHorizontal: 16,
+        height: 800,
     },
     card: {
         backgroundColor: "#f8f7fc",
@@ -847,4 +849,18 @@ const styles = StyleSheet.create({
         color: "#3C3ADD",
         fontWeight: "bold",
     },
+    noBudgetsText: {
+        fontSize: 18,
+        fontWeight: "bold",
+        color: "#939393",
+        textAlign: "center",
+        marginTop: 20,
+    },
+    budgetPredictionText: {
+        fontSize: 14,
+        fontWeight: "bold",
+        color: "#3C3ADD",
+        textAlign: "center",
+        marginTop: 15,
+    }
 });

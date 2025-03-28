@@ -1,22 +1,25 @@
-import { db } from "../../firebase";
-import {
+// fetchData.js
+const { db } = require("../../firebase");
+const {
     doc,
     getDoc,
     getDocs,
     collection,
     query,
     where,
-} from "firebase/firestore";
-import { Timestamp } from "firebase/firestore";
+} = require("firebase/firestore");
+const { Timestamp } = require("firebase/firestore");
 
+//hard coded for now
 let categories = ["bills", "shopping", "food", "health"];
-const monthStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const monthEndDate = Timestamp.fromDate(new Date("2025-02-28"));
-const weekStartDate = Timestamp.fromDate(new Date("2025-02-01"));
-const weekEndDate = Timestamp.fromDate(new Date("2025-02-08"));
 
-export async function fetchUserBudgetKeys(userID) {
+// FOR TESTING
+const monthStartDate = Timestamp.fromDate(new Date("2025-03-01"));
+const monthEndDate = Timestamp.fromDate(new Date("2025-03-31"));
+
+async function fetchUserBudgetKeys(userID) {
     try {
+        console.log("fetching user budget keys...");
         const docRef = doc(db, "budgets", userID);
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
@@ -33,7 +36,7 @@ export async function fetchUserBudgetKeys(userID) {
     }
 }
 
-export async function fetchAllBudgets() {
+async function fetchAllBudgets() {
     try {
         console.log("Fetching data...");
         const querySnapshot = await getDocs(collection(db, "budgets")); // all docs in budgets
@@ -48,7 +51,7 @@ export async function fetchAllBudgets() {
     }
 }
 
-export async function fetchUserBudget(userID) {
+async function fetchUserBudget(userID) {
     try {
         console.log(`Fetching budget for user: ${userID}`);
 
@@ -69,7 +72,7 @@ export async function fetchUserBudget(userID) {
     }
 }
 
-export async function fetchTransactions(userID, startDate, endDate) {
+async function fetchUserTransactionsByDate(userID, startDate, endDate) {
     try {
         console.log(
             `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
@@ -98,7 +101,37 @@ export async function fetchTransactions(userID, startDate, endDate) {
     }
 }
 
-export async function fetchOneCategorySH(userID, category, startDate, endDate) {
+async function fetchAllUserTransactions(userID) {
+    try {
+        console.log(`Fetching transactions for user: ${userID}`);
+
+        const userRef = doc(db, "spending_history", userID);
+        let transactions = [];
+
+        for (const category of categories) {
+            const categoryRef = collection(userRef, category);
+            const transactionsSnapshot = await getDocs(categoryRef);
+            transactionsSnapshot.forEach((doc) => {
+                transactions.push({ id: doc.id, category, ...doc.data() });
+            });
+        }
+        console.log("all transactions:", transactions);
+        return transactions;
+    } catch (error) {
+        console.log(
+            "Error in fetchAllUserTransctions. Cannot get transactions:",
+            error
+        );
+        return [];
+    }
+}
+
+async function fetchSpendingHistoryByCategory(
+    userID,
+    category,
+    startDate,
+    endDate
+) {
     try {
         console.log(`fetch spending history for ${userID} in ${category}:`);
         const categoryCollectionRef = collection(
@@ -116,11 +149,13 @@ export async function fetchOneCategorySH(userID, category, startDate, endDate) {
         const transactions = [];
         console.log(`Number of documents in ${category}:`, querySnapshot.size);
         querySnapshot.forEach((doc) => {
+            console.log("examine doc", doc);
             console.log("Document ID:", doc.id);
             console.log("Document Data:", doc.data());
         });
 
         querySnapshot.forEach((doc) => {
+            console.log("examine doc", doc);
             const transactionData = doc.data();
             transactions.push({
                 id: doc.id,
@@ -131,7 +166,7 @@ export async function fetchOneCategorySH(userID, category, startDate, endDate) {
         });
 
         console.log(
-            `Fetched ${transactions.length} transactions in ${category} for user ${userID}`
+            `DONE! Fetched transactions in ${category} for user ${userID}:`
         );
         return transactions;
     } catch (error) {
@@ -139,35 +174,137 @@ export async function fetchOneCategorySH(userID, category, startDate, endDate) {
     }
 }
 
-export async function fetchSpendingPerCategory(userID, startDate, endDate) {
+function getDateRange(period) {
+    const now = new Date();
+    let startDate, endDate;
+
+    switch (period) {
+        case 'Daily':
+            // Today
+            startDate = new Date(now.setHours(0, 0, 0, 0));
+            endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+            break;
+        case 'Weekly':
+            // Current week (Sunday to Saturday)
+            const day = now.getDay(); // 0 = Sunday, 6 = Saturday
+            startDate = new Date(now); // Clone current date
+            startDate.setDate(now.getDate() - day); // Go to beginning of week (Sunday)
+            startDate.setHours(0, 0, 0, 0);
+            
+            endDate = new Date(startDate);
+            endDate.setDate(startDate.getDate() + 6); // Saturday
+            endDate.setHours(23, 59, 59, 999);
+            break;
+        case 'Monthly':
+            // Current month
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+            break;
+        case 'Yearly':
+            // Current year
+            startDate = new Date(now.getFullYear(), 0, 1);
+            endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+            break;
+        default:
+            // Default to Monthly if period is invalid
+            startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+            endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    }
+    
+    console.log(`Date range for ${period}: ${startDate.toISOString()} to ${endDate.toISOString()}`);
+    return {
+        startDate: Timestamp.fromDate(startDate),
+        endDate: Timestamp.fromDate(endDate)
+    };
+}
+
+async function fetchSpendingDataByPeriod(userID, period) {
     try {
-        let spendingPerCategory = {}; // "shopping": {total: 250, transactions: []}
-        console.log("fetching spending per category....");
-        for (const category of categories) {
-            const transactions = await fetchOneCategorySH(
-                userID,
-                category,
-                startDate,
-                endDate
-            );
-            let total_amount_spent = 0;
-            for (const trans of transactions) {
-                total_amount_spent += trans.amount;
-            }
-            spendingPerCategory[category] = { total: total_amount_spent };
-            spendingPerCategory[category]["transactions"] = transactions;
-            console.log(
-                `num of transactions: ${spendingPerCategory[category]["transactions"].length}`
-            );
-            console.log(
-                `${userID} spent ${spendingPerCategory[category]} on ${category}`
-            );
+        console.log(`Fetching spending data for user ${userID} with period ${period}`);
+        const { startDate, endDate } = getDateRange(period);
+        const budget = await fetchUserBudget(userID);
+        const transactions = await fetchUserTransactionsByDate(userID, startDate, endDate);
+
+        console.log(`Found ${transactions.length} transactions for period ${period}`);
+        
+        // Process budget data for the selected period
+        let modifiedBudget = { ...budget };
+        
+        // Adjust budget amounts based on the period
+        if (period === 'Daily') {
+            // Scale down monthly budget to daily
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] / 30;
+            });
+        } else if (period === 'Weekly') {
+            // Scale down monthly budget to weekly
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] / 4;
+            });
+        } else if (period === 'Yearly') {
+            // Scale up monthly budget to yearly
+            Object.keys(modifiedBudget).forEach(key => {
+                modifiedBudget[key] = modifiedBudget[key] * 12;
+            });
         }
-        console.log(spendingPerCategory);
-        return spendingPerCategory;
+        // Monthly remains as is
+
+        let totalSpent = 0;
+        let spendingByCategory = {};
+
+        transactions.forEach(transaction => {
+            totalSpent += transaction.amount;
+            spendingByCategory[transaction.category] = (spendingByCategory[transaction.category] || 0) + transaction.amount;
+        });
+
+        let totalBudget = 0;
+        Object.values(modifiedBudget || {}).forEach(amount => {
+            totalBudget += amount;
+        });
+
+        // Ensure we have data for all budget categories, even if there are no transactions
+        const categories = Object.keys(modifiedBudget || {}).map(category => ({
+            name: category,
+            spent: spendingByCategory[category] || 0,
+            budget: modifiedBudget[category] || 0,
+            color: getCategoryColor(category)
+        }));
+
+        const result = {
+            categories,
+            totalSpent,
+            totalBudget,
+            percentage: totalBudget > 0 ? Math.min((totalSpent / totalBudget) * 100, 100) : 0
+        };
+        
+        console.log("Processed spending data:", result);
+        return result;
     } catch (error) {
-        console.log("cannot calc user's spending curretly");
+        console.error("Error fetching spending data by period:", error);
+        throw error;
     }
 }
 
-// fetchOneCategorySH("taylor_userid", "shopping", monthStartDate, monthEndDate);
+function getCategoryColor(category) {
+    const colors = {
+        food: "#4CAF50",
+        bills: "#6C63FF",
+        shopping: "#FF8A65",
+        health: "#42A5F5"
+    };
+    return colors[category.toLowerCase()] || "#999999";
+}
+
+// Call function for testing
+// fetchTotalSpendingPerCategory("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
+
+module.exports = {
+    fetchUserBudgetKeys,
+    fetchAllBudgets,
+    fetchUserBudget,
+    fetchUserTransactionsByDate,
+    fetchSpendingHistoryByCategory,
+    fetchAllUserTransactions,
+    fetchSpendingDataByPeriod,
+    getDateRange
+};
