@@ -167,7 +167,6 @@ export default function Statistics() {
                     const newBudgets = budgetKeys.map((key) => ({
                         category: key,
                         amount: spendingPerCategory[key]?.["total"] || 0,
-                        amount: spendingPerCategory[key]?.["total"] || 0,
                         limit: userBudgets[key] || 0,
                         icon: (iconDict[key] as IconSymbolName) || "null",
                     }));
