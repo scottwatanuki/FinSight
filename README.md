@@ -1,50 +1,76 @@
-# Welcome to your Expo app 👋
+# FinSight - Financial Management Application
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+FinSight is a financial management application built with Expo and React Native that helps users track expenses, visualize financial data, and gain insights into their spending habits.
 
-## Get started
+## Features
 
-1. Install dependencies
+- User authentication with Firebase
+- Financial tracking and visualization
+- Personalized financial insights
+- Cross-platform support (iOS & Android)
+
+## Getting Started
+
+### Prerequisites
+
+- Node.js (16.x or newer)
+- npm or yarn
+- Expo CLI
+- iOS Simulator or Android Emulator (optional for mobile testing)
+
+### Installation
+
+1. Clone the repository:
+
+   ```bash
+   git clone <repository-url>
+   cd FinSight
+   ```
+
+2. Install dependencies:
 
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Set up Firebase:
+   - The app is already configured with Firebase in [firebase.js](firebase.js)
+   - Make sure you have the necessary Firebase services enabled (Authentication, Firestore, Storage)
+
+4. Start the app:
 
    ```bash
-    npx expo start
+   npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## Development
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+This project uses:
+- [Expo](https://expo.dev) as the development platform
+- [React Native](https://reactnative.dev/) for mobile app development
+- [Firebase](https://firebase.google.com/) for backend services
+- [Expo Router](https://docs.expo.dev/router/introduction) for file-based routing
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+### Project Structure
 
-## Get a fresh project
+- `/app` - Main application code with file-based routing
+- `/components` - Reusable UI components
+- `/constants` - Application constants
+- `/assets` - Static assets like images and fonts
+- `/hooks` - Custom React hooks
 
-When you're ready, run:
+### Testing
+
+You can test the app using:
+- iOS Simulator
+- Android Emulator
+- Expo Go on a physical device
+- Development build for unrestricted native functionality
+
+## Troubleshooting
+
+If you encounter issues with dependencies or Firebase, try:
 
 ```bash
-npm run reset-project
+npm install firebase @react-native-async-storage/async-storage
 ```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.

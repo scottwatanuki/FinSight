@@ -9,6 +9,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     SafeAreaView,
+    Alert,
 } from "react-native";
 import Modal from "react-native-modal";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -17,10 +18,10 @@ import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
 import {
     fetchUserBudgetKeys,
     fetchUserBudget,
-    fetchSpendingPerCategory,
-    fetchTransactions,
+    fetchUserTransactionsByDate,
 } from "../backend/fetchData";
-import { setBudget, addSpending } from "../backend/pushData";
+import { fetchSpendingPerCategoryByDate, monthlyMedianSpending } from "../backend/analyzeMonthlySpending";
+import { setBudget, addSpending, deleteTransaction, resetBudget, resetAllBudgets } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
@@ -55,8 +56,8 @@ export default function Statistics() {
     };
     const [isModalVisible, setModalVisible] = useState(false);
     const [isSpendingModalVisible, setSpendingModalVisible] = useState(false);
-    const [category, setCategory] = useState("Shopping");
-    const [frequency, setFrequency] = useState("Daily");
+    const [category, setCategory] = useState("");
+    const [frequency, setFrequency] = useState("");
     const [amount, setAmount] = useState("");
 
     const [spendingCategory, setSpendingCategory] = useState(""); //adding spending to history
@@ -75,6 +76,7 @@ export default function Statistics() {
     const [refreshData, setRefreshData] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState("30"); // State for filter period
     const [filterOpen, setFilterOpen] = useState(false); // State for filter dropdown
+    const [predictedMonthlySpending, setPrediction] = useState(false); // State for filter dropdown
 
     const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
 
@@ -84,6 +86,64 @@ export default function Statistics() {
             setSpendingDate(selectedDate);
         }
     };
+
+    const [isResetModalVisible, setResetModalVisible] = useState(false);
+    const [selectedBudget, setSelectedBudget] = useState(null);
+    const [isDeleteTransactionModalVisible, setDeleteTransactionModalVisible] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+    const toggleResetModal = (budget = null) => {
+        setSelectedBudget(budget);
+        setResetModalVisible(!isResetModalVisible);
+    };
+
+    const toggleDeleteTransactionModal = (transaction = null) => {
+        setSelectedTransaction(transaction);
+        setDeleteTransactionModalVisible(!isDeleteTransactionModalVisible);
+    };
+
+    const handleResetBudget = async () => {
+        if (!userID) return;
+
+        try {
+            if (selectedBudget) {
+                // Reset specific budget
+                await resetBudget(userID, selectedBudget.category);
+            } else {
+                // Reset all budgets
+                await resetAllBudgets(userID);
+            }
+            
+            setResetModalVisible(false);
+            setRefreshData(prev => !prev);
+            
+            Alert.alert(
+                "Success", 
+                selectedBudget 
+                    ? `Budget for ${selectedBudget.category} has been reset` 
+                    : "All budgets have been reset"
+            );
+        } catch (error) {
+            console.error("Error resetting budget:", error);
+            Alert.alert("Error", "Failed to reset budget. Please try again.");
+        }
+    };
+
+    const handleDeleteTransaction = async () => {
+        if (!userID || !selectedTransaction) return;
+
+        try {
+            await deleteTransaction(userID, selectedTransaction.category, selectedTransaction.id);
+            setDeleteTransactionModalVisible(false);
+            setRefreshData(prev => !prev);
+            
+            Alert.alert("Success", "Transaction has been deleted");
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            Alert.alert("Error", "Failed to delete transaction. Please try again.");
+        }
+    };
+
     useEffect(() => {
         const fetchBudgets = async () => {
             if (!userID) return;
@@ -91,11 +151,13 @@ export default function Statistics() {
             try {
                 const budgetKeys = await fetchUserBudgetKeys(userID);
                 const userBudgets = await fetchUserBudget(userID);
-                const spendingPerCategory = await fetchSpendingPerCategory(
-                    userID,
-                    monthStartDate,
-                    monthEndDate
-                );
+                const spendingPerCategory =
+                    await fetchSpendingPerCategoryByDate(
+                        userID,
+                        monthStartDate,
+                        monthEndDate,
+                        budgetKeys //fetches current categories the user has transactions in
+                    );
                 console.log(
                     "from statistics, spending per category:",
                     spendingPerCategory
@@ -104,6 +166,7 @@ export default function Statistics() {
                 if (budgetKeys && userBudgets && spendingPerCategory) {
                     const newBudgets = budgetKeys.map((key) => ({
                         category: key,
+                        amount: spendingPerCategory[key]?.["total"] || 0,
                         amount: spendingPerCategory[key]?.["total"] || 0,
                         limit: userBudgets[key] || 0,
                         icon: (iconDict[key] as IconSymbolName) || "null",
@@ -115,7 +178,7 @@ export default function Statistics() {
                     setBudgets([]);
                 }
 
-                const transactions = await fetchTransactions(
+                const transactions = await fetchUserTransactionsByDate(
                     userID,
                     monthStartDate,
                     monthEndDate
@@ -124,8 +187,12 @@ export default function Statistics() {
                     "from statistics, total transactons:",
                     transactions.length
                 );
+                const predictedMonthlySpending = await monthlyMedianSpending(userID);
+                console.log("predicted spending amount", predictedMonthlySpending)
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
+                        id: transaction.id,
+                        category: transaction.category,
                         name: transaction["description"],
                         amount: transaction["amount"],
                         category: transaction["category"],
@@ -141,7 +208,10 @@ export default function Statistics() {
             }
         };
         fetchBudgets();
+       
     }, [userID, refreshData]);
+
+
 
     const handleAddSpending = async () => {
         if (!userID) {
@@ -168,7 +238,7 @@ export default function Statistics() {
         setSpendingCategory("");
         setSpendingDescription("");
         setSpendingDate(new Date());
-        toggleModal();
+        toggleSpendingModal();
         setRefreshData((prev) => !prev);
     };
 
@@ -230,115 +300,36 @@ export default function Statistics() {
         switch (view) {
             case "Daily":
                 return budgets.map((budget) => {
-                    if (budget.frequency === "Daily") {
-                        return {
+                    return {
                             ...budget,
-                            amount: budget.amount,
-                            limit: budget.limit,
+                            amount: budget.amount/30,
+                            limit: budget.limit/30,
                         };
-                    } else if (budget.frequency === "Weekly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 7,
-                            limit: budget.limit / 7,
-                        };
-                    } else if (budget.frequency === "Monthly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 30,
-                            limit: budget.limit / 30,
-                        };
-                    } else { // Yearly budget
-                        return {
-                            ...budget,
-                            amount: budget.amount / 365,
-                            limit: budget.limit / 365,
-                        };
-                    }
                 });
             case "Weekly":
                 return budgets.map((budget) => {
-                    if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount *7,
-                            limit: budget.limit *7,
+                            amount: budget.amount/7,
+                            limit: budget.limit/7,
                         };
-                    } else if (budget.frequency === "Weekly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount,
-                            limit: budget.limit,
-                        };
-                    } else if (budget.frequency === "Monthly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 4,
-                            limit: budget.limit / 4,
-                        };
-                    } else { // Yearly budget
-                        return {
-                            ...budget,
-                            amount: budget.amount / 52,
-                            limit: budget.limit / 52,
-                        };
-                    }
                 });
             case "Monthly":
                 return budgets.map((budget) => {
-                    if (budget.frequency === "Daily") {
-                        return {
-                            ...budget,
-                            amount: budget.amount/30,
-                            limit: budget.limit/30
-                        };
-                    } else if (budget.frequency === "Weekly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 4,
-                            limit: budget.limit / 4,
-                        };
-                    } else if (budget.frequency === "Monthly") {
                         return {
                             ...budget,
                             amount: budget.amount,
-                            limit: budget.limit,
+                            limit: budget.limit
                         };
-                    } else { // Yearly budget
-                        return {
-                            ...budget,
-                            amount: budget.amount *12,
-                            limit: budget.limit *12,
-                        };
-                    }
+                    
                 });
             case "Yearly":
                 return budgets.map((budget) => {
-                    if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount/365,
-                            limit: budget.limit/365,
+                            amount: budget.amount*12,
+                            limit: budget.limit*12,
                         };
-                    } else if (budget.frequency === "Weekly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 52,
-                            limit: budget.limit / 52,
-                        };
-                    } else if (budget.frequency === "Monthly") {
-                        return {
-                            ...budget,
-                            amount: budget.amount / 12,
-                            limit: budget.limit / 12,
-                        };
-                    } else { // Yearly budget
-                        return {
-                            ...budget,
-                            amount: budget.amount,
-                            limit: budget.limit,
-                        };
-                    }
                 });
             default:
                 return budgets;
@@ -373,6 +364,7 @@ export default function Statistics() {
                     containerStyle={styles.viewDropdownContainerStyle}
                 />
             </View>
+
             <ScrollView
                 contentContainerStyle={styles.scrollView}
                 style={styles.fixedScrollView}
@@ -426,9 +418,14 @@ export default function Statistics() {
                     dropDownContainerStyle={styles.filterDropdownContainer}
                 />
             </View>
+            
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
                 {history.map((item, index) => (
-                    <View key={index} style={styles.historyCard}>
+                    <TouchableOpacity 
+                        key={index} 
+                        style={styles.historyCard}
+                        onLongPress={() => toggleDeleteTransactionModal(item)}
+                    >
                         <View style={styles.historyTextContainer}>
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
@@ -437,7 +434,7 @@ export default function Statistics() {
                         <Text style={styles.historyAmount}>
                             ${item.amount.toFixed(2)}
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
             <Modal
@@ -593,6 +590,63 @@ export default function Statistics() {
                     </TouchableOpacity>
                 </View>
             </Modal>
+            <Modal
+                isVisible={isResetModalVisible}
+                onBackdropPress={() => setResetModalVisible(false)}
+            >
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>
+                        {selectedBudget 
+                            ? `Reset ${selectedBudget.category} Budget` 
+                            : "Reset All Budgets"}
+                    </Text>
+                    <Text style={styles.modalText}>
+                        {selectedBudget 
+                            ? `Are you sure you want to reset the budget for ${selectedBudget.category}?` 
+                            : "Are you sure you want to reset all budgets? This will set all budget amounts to zero."}
+                    </Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
+                            onPress={() => setResetModalVisible(false)}
+                        >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.button, styles.resetButton]}
+                            onPress={handleResetBudget}
+                        >
+                            <Text style={styles.buttonText}>Reset</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                isVisible={isDeleteTransactionModalVisible}
+                onBackdropPress={() => setDeleteTransactionModalVisible(false)}
+            >
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Delete Transaction</Text>
+                    <Text style={styles.modalText}>
+                        Are you sure you want to delete this transaction?
+                        {selectedTransaction && `\n\n${selectedTransaction.name}: $${selectedTransaction.amount.toFixed(2)}`}
+                    </Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
+                            onPress={() => setDeleteTransactionModalVisible(false)}
+                        >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.button, styles.deleteButton]}
+                            onPress={handleDeleteTransaction}
+                        >
+                            <Text style={styles.buttonText}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -601,8 +655,48 @@ const styles = StyleSheet.create({
     header: {
         paddingTop: 70,
         flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 16,
+    },
+    
+    headerButtonsContainer: {
+        flexDirection: "row",
         alignItems: "center",
     },
+    
+    headerButton: {
+        marginLeft: 10,
+        padding: 5,
+    },
+    
+    expensesContainer: {
+        marginTop: 0, // Reduced top margin
+        marginBottom: 0, // Reduced bottom margin
+        alignItems: "center",
+    },
+    
+    viewDropdown: {
+        borderWidth: 0,
+        backgroundColor: "transparent",
+        paddingRight: 45,
+        marginLeft: 24,
+    },
+    
+    viewDropdownText: {
+        color: "#3C3ADD",
+        fontWeight: "bold",
+        textAlign: "left",
+    },
+    
+    viewDropdownContainer: {
+        borderWidth: 0,
+    },
+    
+    viewDropdownContainerStyle: {
+        width: 150,
+    },
+    
     container: {
         flex: 1,
         backgroundColor: "#ffffff",
@@ -624,7 +718,7 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 24,
         fontWeight: "bold",
-        marginVertical: 8,
+        marginVertical: 5, // Reduce vertical margin
         paddingHorizontal: 16,
     },
     historySubtitle: {
@@ -646,7 +740,7 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: 8,
         padding: 8,
-        marginVertical: 8,
+        marginVertical: 5, // Reduce vertical margin of cards
         alignItems: "center",
         justifyContent: "center",
     },
@@ -790,9 +884,6 @@ const styles = StyleSheet.create({
     },
     viewDropdownContainerStyle: {
         width: 150,
-    },
-    budgetDropdown: {
-        width: 100,
     },
     amountContainer: {
         alignItems: "center",
