@@ -74,9 +74,9 @@ export default function Statistics() {
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshData, setRefreshData] = useState(false);
-    const [filterPeriod, setFilterPeriod] = useState("30"); // State for filter period
-    const [filterOpen, setFilterOpen] = useState(false); // State for filter dropdown
     const [predictedMonthlySpending, setPredictedMonthlySpending] = useState(null);
+    const [filterCategory, setFilterCategory] = useState(null); // State for selected filter category
+    const [filterOpen, setFilterOpen] = useState(false);
 
     const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
 
@@ -289,7 +289,12 @@ export default function Statistics() {
         );
     }
 
-    const filteredHistory = filterTransactions(history, filterPeriod);
+    const getFilteredHistory = () => {
+        if (!filterCategory) {
+            return history; // If no category is selected, return all items
+        }
+        return history.filter((item) => item.category === filterCategory);
+    };
 
     const handleAddBudget = () => {
         const budgetData = {
@@ -354,7 +359,7 @@ export default function Statistics() {
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
                 <TouchableOpacity
-                    style={styles.budgetDropdown}
+                    style={styles.headerButton}
                     onPress={toggleModal}
                 >
                     <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
@@ -418,14 +423,24 @@ export default function Statistics() {
                 </TouchableOpacity>
                     <DropDownPicker
                     open={filterOpen}
-                    value={filterPeriod}
+                    value={filterCategory}
                     items={[
+                        { label: "All Categories", value: null },
+                        { label: "Entertainment", value: "entertainment" },
+                        { label: "Travel", value: "travel" },
                         { label: "Bills", value: "bills" },
+                        { label: "Groceries", value: "groceries" },
+                        { label: "Dining", value: "dining" },
+                        { label: "Subscriptions", value: "subscriptions" },
+                        { label: "Transportation", value: "transportation" },
+                        { label: "Recreational", value: "recreational" },
                         { label: "Shopping", value: "shopping" },
                         { label: "Health", value: "health" },
+                        { label: "Misc", value: "misc" },
                     ]}
                     setOpen={setFilterOpen}
-                    setValue={setFilterPeriod}
+                    setValue={setFilterCategory}
+                    placeholder="All Categories"
                     style={styles.filterDropdown}
                     textStyle={styles.filterDropdownText}
                     dropDownContainerStyle={styles.filterDropdownContainer}
@@ -433,9 +448,9 @@ export default function Statistics() {
             </View>
             
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
-                {history.map((item, index) => (
-                    <TouchableOpacity 
-                        key={index} 
+                {getFilteredHistory().map((item) => (
+                    <View key={item.id} style={{ marginBottom: 16 }}>
+                        <TouchableOpacity 
                         style={styles.historyCard}
                         onLongPress={() => toggleDeleteTransactionModal(item)}
                     >
@@ -448,6 +463,7 @@ export default function Statistics() {
                             ${item.amount.toFixed(2)}
                         </Text>
                     </TouchableOpacity>
+                    </View>
                 ))}
             </ScrollView>
             <Modal
@@ -687,14 +703,18 @@ const styles = StyleSheet.create({
     },
     
     headerButton: {
-        marginLeft: 10,
-        padding: 5,
+        marginLeft: -35,
+        padding: 0,
     },
     
     expensesContainer: {
         marginTop: 0, // Reduced top margin
         marginBottom: 0, // Reduced bottom margin
         alignItems: "center",
+    },
+    budgetsDropdown: {  
+        marginLeft: 10,
+
     },
     
     viewDropdown: {
@@ -728,6 +748,7 @@ const styles = StyleSheet.create({
     scrollViewColumn: {
         flexDirection: "column",
         paddingHorizontal: 16,
+        height: 600,
  
     },
     title: {
@@ -741,6 +762,7 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
         marginVertical: 5, // Reduce vertical margin
         paddingHorizontal: 16,
+        paddingLeft: -4,
     },
     historySubtitle: {
         fontSize: 24,
@@ -796,7 +818,7 @@ const styles = StyleSheet.create({
         justifyContent: "space-between",
         alignItems: "center",
         padding: 16,
-        marginVertical: 8,
+        marginTop: 4,
         borderRadius: 8,
         shadowColor: "#000",
         shadowOffset: { width: 0, height: 2 },
@@ -893,15 +915,18 @@ const styles = StyleSheet.create({
         backgroundColor: "transparent",
         maxWidth: 115,
         marginBottom: 10,
+        marginLeft: 35,
     },
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
+        
     },
     viewDropdownContainer: {
         borderWidth: 1,
         borderColor: "#ccc",
         maxWidth: 115,
+        marginLeft: 35,
     },
     viewDropdownContainerStyle: {
         width: 150,
@@ -939,22 +964,22 @@ const styles = StyleSheet.create({
         borderColor: "#ccc",
         borderRadius: 5,
         marginBottom: 16,
-        maxWidth: 130,
-        marginLeft: 70,
+        maxWidth: 170,
+        marginLeft: 30,
         marginTop: 15,
         marginRight: 200,
     },
     filterDropdownText: {
-        fontSize: 16,
+        fontSize: 14,
         color: "#3C3ADD",
         fontWeight: "bold",
     },
     filterDropdownContainer: {
         borderWidth: 1,
         borderColor: "#ccc",
-        marginLeft: 70,
+        marginLeft: 30,
         marginTop: 15,
-        maxWidth: 130,
+        maxWidth: 170,
     },
     historyCategory: {
         fontSize: 14,
