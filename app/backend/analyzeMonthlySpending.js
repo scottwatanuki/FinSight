@@ -214,8 +214,8 @@ async function monthlyMedianSpending(userID) {
 
             console.log(`${userID}'s predicted spending for next month:`);
             console.log(predictions);
-            return predictions;
         }
+        return predictions;
     } catch (error) {
         console.error("Error analyzing monthly spending:", error);
         return null;
