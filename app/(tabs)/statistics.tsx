@@ -9,6 +9,7 @@ import {
     StyleSheet,
     ActivityIndicator,
     SafeAreaView,
+    Alert,
 } from "react-native";
 import Modal from "react-native-modal";
 import DropDownPicker from "react-native-dropdown-picker";
@@ -19,9 +20,8 @@ import {
     fetchUserBudget,
     fetchUserTransactionsByDate,
 } from "../backend/fetchData";
-
 import { fetchSpendingPerCategoryByDate } from "../backend/analyzeMonthlySpending";
-import { setBudget, addSpending } from "../backend/pushData";
+import { setBudget, addSpending, deleteTransaction, resetBudget, resetAllBudgets } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
@@ -76,6 +76,64 @@ export default function Statistics() {
             setSpendingDate(selectedDate);
         }
     };
+
+    const [isResetModalVisible, setResetModalVisible] = useState(false);
+    const [selectedBudget, setSelectedBudget] = useState(null);
+    const [isDeleteTransactionModalVisible, setDeleteTransactionModalVisible] = useState(false);
+    const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+    const toggleResetModal = (budget = null) => {
+        setSelectedBudget(budget);
+        setResetModalVisible(!isResetModalVisible);
+    };
+
+    const toggleDeleteTransactionModal = (transaction = null) => {
+        setSelectedTransaction(transaction);
+        setDeleteTransactionModalVisible(!isDeleteTransactionModalVisible);
+    };
+
+    const handleResetBudget = async () => {
+        if (!userID) return;
+
+        try {
+            if (selectedBudget) {
+                // Reset specific budget
+                await resetBudget(userID, selectedBudget.category);
+            } else {
+                // Reset all budgets
+                await resetAllBudgets(userID);
+            }
+            
+            setResetModalVisible(false);
+            setRefreshData(prev => !prev);
+            
+            Alert.alert(
+                "Success", 
+                selectedBudget 
+                    ? `Budget for ${selectedBudget.category} has been reset` 
+                    : "All budgets have been reset"
+            );
+        } catch (error) {
+            console.error("Error resetting budget:", error);
+            Alert.alert("Error", "Failed to reset budget. Please try again.");
+        }
+    };
+
+    const handleDeleteTransaction = async () => {
+        if (!userID || !selectedTransaction) return;
+
+        try {
+            await deleteTransaction(userID, selectedTransaction.category, selectedTransaction.id);
+            setDeleteTransactionModalVisible(false);
+            setRefreshData(prev => !prev);
+            
+            Alert.alert("Success", "Transaction has been deleted");
+        } catch (error) {
+            console.error("Error deleting transaction:", error);
+            Alert.alert("Error", "Failed to delete transaction. Please try again.");
+        }
+    };
+
     useEffect(() => {
         const fetchBudgets = async () => {
             if (!userID) return;
@@ -120,6 +178,8 @@ export default function Statistics() {
                 );
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
+                        id: transaction.id,
+                        category: transaction.category,
                         name: transaction["description"],
                         amount: transaction["amount"],
                         date: transaction["date"].toDate().toLocaleDateString(),
@@ -248,13 +308,24 @@ export default function Statistics() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
-                <TouchableOpacity
-                    style={styles.budgetDropdown}
-                    onPress={toggleModal}
-                >
-                    <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
-                </TouchableOpacity>
+                <View style={styles.headerButtonsContainer}>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={toggleModal}
+                    >
+                        <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => toggleResetModal()}
+                    >
+                        <IconSymbol size={28} name="arrow.counterclockwise" color="#FF5757" />
+                    </TouchableOpacity>
+                </View>
+            </View>
 
+            <View style={styles.expensesContainer}>
                 <DropDownPicker
                     open={viewOpen}
                     value={view}
@@ -272,12 +343,17 @@ export default function Statistics() {
                     containerStyle={styles.viewDropdownContainerStyle}
                 />
             </View>
+
             <ScrollView
                 contentContainerStyle={styles.scrollView}
                 style={styles.fixedScrollView}
             >
                 {getFilteredBudgets().map((budget, index) => (
-                    <View key={index} style={styles.card}>
+                    <TouchableOpacity 
+                        key={index} 
+                        style={styles.card}
+                        onLongPress={() => toggleResetModal(budget)}
+                    >
                         <IconSymbol
                             size={28}
                             name={budget.icon}
@@ -292,9 +368,10 @@ export default function Statistics() {
                                 of ${budget.limit.toFixed(2)}
                             </Text>
                         </View>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
+            
             <View style={styles.historyHeaderContainer}>
                 <Text style={[styles.subtitle, styles.historySubtitle]}>
                     History
@@ -306,9 +383,14 @@ export default function Statistics() {
                     <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
                 </TouchableOpacity>
             </View>
+            
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
                 {history.map((item, index) => (
-                    <View key={index} style={styles.historyCard}>
+                    <TouchableOpacity 
+                        key={index} 
+                        style={styles.historyCard}
+                        onLongPress={() => toggleDeleteTransactionModal(item)}
+                    >
                         <View style={styles.historyTextContainer}>
                             <Text style={styles.historyName}>{item.name}</Text>
                             <Text style={styles.historyDate}>{item.date}</Text>
@@ -316,7 +398,7 @@ export default function Statistics() {
                         <Text style={styles.historyAmount}>
                             ${item.amount.toFixed(2)}
                         </Text>
-                    </View>
+                    </TouchableOpacity>
                 ))}
             </ScrollView>
             <Modal
@@ -451,6 +533,63 @@ export default function Statistics() {
                     </TouchableOpacity>
                 </View>
             </Modal>
+            <Modal
+                isVisible={isResetModalVisible}
+                onBackdropPress={() => setResetModalVisible(false)}
+            >
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>
+                        {selectedBudget 
+                            ? `Reset ${selectedBudget.category} Budget` 
+                            : "Reset All Budgets"}
+                    </Text>
+                    <Text style={styles.modalText}>
+                        {selectedBudget 
+                            ? `Are you sure you want to reset the budget for ${selectedBudget.category}?` 
+                            : "Are you sure you want to reset all budgets? This will set all budget amounts to zero."}
+                    </Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
+                            onPress={() => setResetModalVisible(false)}
+                        >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.button, styles.resetButton]}
+                            onPress={handleResetBudget}
+                        >
+                            <Text style={styles.buttonText}>Reset</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
+            <Modal
+                isVisible={isDeleteTransactionModalVisible}
+                onBackdropPress={() => setDeleteTransactionModalVisible(false)}
+            >
+                <View style={styles.modalContent}>
+                    <Text style={styles.modalTitle}>Delete Transaction</Text>
+                    <Text style={styles.modalText}>
+                        Are you sure you want to delete this transaction?
+                        {selectedTransaction && `\n\n${selectedTransaction.name}: $${selectedTransaction.amount.toFixed(2)}`}
+                    </Text>
+                    <View style={styles.buttonRow}>
+                        <TouchableOpacity
+                            style={[styles.button, styles.cancelButton]}
+                            onPress={() => setDeleteTransactionModalVisible(false)}
+                        >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.button, styles.deleteButton]}
+                            onPress={handleDeleteTransaction}
+                        >
+                            <Text style={styles.buttonText}>Delete</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -459,8 +598,48 @@ const styles = StyleSheet.create({
     header: {
         paddingTop: 70,
         flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+        paddingHorizontal: 16,
+    },
+    
+    headerButtonsContainer: {
+        flexDirection: "row",
         alignItems: "center",
     },
+    
+    headerButton: {
+        marginLeft: 10,
+        padding: 5,
+    },
+    
+    expensesContainer: {
+        marginTop: 0, // Reduced top margin
+        marginBottom: 0, // Reduced bottom margin
+        alignItems: "center",
+    },
+    
+    viewDropdown: {
+        borderWidth: 0,
+        backgroundColor: "transparent",
+        paddingRight: 45,
+        marginLeft: 24,
+    },
+    
+    viewDropdownText: {
+        color: "#3C3ADD",
+        fontWeight: "bold",
+        textAlign: "left",
+    },
+    
+    viewDropdownContainer: {
+        borderWidth: 0,
+    },
+    
+    viewDropdownContainerStyle: {
+        width: 150,
+    },
+    
     container: {
         flex: 1,
         backgroundColor: "#ffffff",
@@ -481,18 +660,23 @@ const styles = StyleSheet.create({
     subtitle: {
         fontSize: 24,
         fontWeight: "bold",
-        marginVertical: 8,
+        marginVertical: 5, // Reduce vertical margin
         paddingHorizontal: 16,
     },
     historySubtitle: {
-        marginTop: 16,
+        marginTop: 0, // Remove top margin
     },
     scrollView: {
         flexDirection: "row",
         flexWrap: "wrap",
         justifyContent: "space-between",
-        marginBottom: 160,
         paddingHorizontal: 16,
+        marginBottom: 0, // Remove bottom margin completely
+        paddingBottom: 0, // Ensure no padding at the bottom
+        maxHeight: "60%", // Limit the height to prevent excessive expansion
+    },
+    fixedScrollView: {
+        maxHeight: "60%", // Limit the ScrollView height
     },
     card: {
         backgroundColor: "#f8f7fc",
@@ -500,7 +684,7 @@ const styles = StyleSheet.create({
         aspectRatio: 1,
         borderRadius: 8,
         padding: 8,
-        marginVertical: 8,
+        marginVertical: 5, // Reduce vertical margin of cards
         alignItems: "center",
         justifyContent: "center",
     },
@@ -525,6 +709,9 @@ const styles = StyleSheet.create({
         display: "flex",
         flexDirection: "row",
         alignItems: "center",
+        marginTop: 0, // Remove top margin
+        marginBottom: 5,
+        paddingTop: 0, // Ensure no top padding
     },
     historyCard: {
         backgroundColor: "#ffffff",
@@ -626,21 +813,19 @@ const styles = StyleSheet.create({
     viewDropdown: {
         borderWidth: 0,
         backgroundColor: "transparent",
-        paddingRight: 20,
+        paddingRight: 45,
+        marginLeft: 24,
     },
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
-        textAlign: "right",
+        textAlign: "left",
     },
     viewDropdownContainer: {
         borderWidth: 0,
     },
     viewDropdownContainerStyle: {
         width: 150,
-    },
-    budgetDropdown: {
-        width: 100,
     },
     amountContainer: {
         alignItems: "center",
@@ -669,5 +854,37 @@ const styles = StyleSheet.create({
     },
     datePickerButtonText: {
         color: "#000",
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 20,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    button: {
+        padding: 12,
+        borderRadius: 8,
+        flex: 1,
+        marginHorizontal: 5,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#E0E0E0',
+    },
+    resetButton: {
+        backgroundColor: '#FF5757',
+    },
+    deleteButton: {
+        backgroundColor: '#FF5757',
+    },
+    buttonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: 'white',
     },
 });

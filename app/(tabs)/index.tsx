@@ -13,7 +13,7 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, collection, onSnapshot, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../firebase";
 import DropDownPicker from "react-native-dropdown-picker";
 import { fetchSpendingDataByPeriod } from "../backend/fetchData";
@@ -229,6 +229,7 @@ export default function HomeTab() {
       data: null,
       error: null
     });
+    const [isListening, setIsListening] = useState(false);
   // Use our custom hook to get spending data
   const spendingDataHook = useSpendingData(user?.uid, selectedPeriod);
 
@@ -250,28 +251,75 @@ export default function HomeTab() {
     fetchUserData();
   }, [user]);
 
+  // Set up real-time listeners for database changes
   useEffect(() => {
-    const fetchData = async () => {
-      if (!user) return;
-      
-      setSpendingData(prev => ({ ...prev, loading: true }));
-      try {
-        const data = await fetchSpendingDataByPeriod(user.uid, selectedPeriod);
-        setSpendingData({
-          loading: false,
-          data: data,
-          error: null
-        });
-      } catch (error) {
-        setSpendingData({
-          loading: false,
-          data: null,
-          error: error
-        });
-      }
-    };
+    if (!user) return;
+    
+    console.log("Setting up database listeners for real-time updates");
+    
+    // Listen for budget changes
+    const budgetRef = doc(db, "budgets", user.uid);
+    const budgetUnsubscribe = onSnapshot(budgetRef, (docSnapshot) => {
+      console.log("Budget updated in database, refreshing data...");
+      fetchData();
+    }, (error) => {
+      console.error("Error listening to budget changes:", error);
+    });
 
-    fetchData();
+    // Listen for spending history changes across all categories
+    const categories = ["food", "bills", "shopping", "health"];
+    const transactionUnsubscribes = [];
+
+    categories.forEach(category => {
+      const spendingRef = collection(db, "spending_history", user.uid, category);
+      // We don't filter by date here to catch all changes
+      const unsubscribe = onSnapshot(spendingRef, (querySnapshot) => {
+        console.log(`${category} transactions updated, refreshing data...`);
+        fetchData();
+      }, (error) => {
+        console.error(`Error listening to ${category} transaction changes:`, error);
+      });
+
+      transactionUnsubscribes.push(unsubscribe);
+    });
+
+    // Cleanup function to unsubscribe from all listeners
+    return () => {
+      console.log("Cleaning up database listeners");
+      budgetUnsubscribe();
+      transactionUnsubscribes.forEach(unsubscribe => unsubscribe());
+    };
+  }, [user]); // Remove isListening dependency to ensure listeners are always set up
+
+  // Function to fetch data based on the current view
+  const fetchData = async () => {
+    if (!user) return;
+    
+    setSpendingData(prev => ({ ...prev, loading: true }));
+    try {
+      console.log(`Fetching spending data for period: ${view}`);
+      const data = await fetchSpendingDataByPeriod(user.uid, view);
+      console.log("Fetched spending data:", data);
+      setSpendingData({
+        loading: false,
+        data: data,
+        error: null
+      });
+    } catch (error) {
+      console.error("Error fetching spending data:", error);
+      setSpendingData({
+        loading: false,
+        data: null,
+        error: error
+      });
+    }
+  };
+
+  // Initial data load and when view changes
+  useEffect(() => {
+    if (user) {
+      fetchData();
+    }
   }, [user, view]);
 
   const userName = userData?.username;
@@ -375,6 +423,7 @@ export default function HomeTab() {
             <>
               {/* Progress Circle using our component with modified props */}
               <CircularProgress
+                key={`progress-${displayData.percentage}`} // Add key to force re-render on percentage change
                 percentage={displayData.percentage}
                 size={240}
                 strokeWidth={20}
@@ -382,7 +431,7 @@ export default function HomeTab() {
                 bgColor="#E6E6FA"
                 rotation={-90}
                 >
-                <Text style={styles.expensesLabel}>Expenses ({selectedPeriod})</Text>
+                <Text style={styles.expensesLabel}>Expenses ({view})</Text>
                 <Text style={styles.expensesAmount}>
                     ${displayData.totalSpent.toLocaleString()}
                 </Text>
