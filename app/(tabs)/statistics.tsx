@@ -76,7 +76,7 @@ export default function Statistics() {
     const [refreshData, setRefreshData] = useState(false);
     const [filterPeriod, setFilterPeriod] = useState("30"); // State for filter period
     const [filterOpen, setFilterOpen] = useState(false); // State for filter dropdown
-    const [predictedMonthlySpending, setPrediction] = useState(false); // State for filter dropdown
+    const [predictedMonthlySpending, setPredictedMonthlySpending] = useState(null);
 
     const { monthStartDate, monthEndDate } = getCurrentMonthDates(); //get user's curr month to date
 
@@ -187,6 +187,18 @@ export default function Statistics() {
                     "from statistics, total transactons:",
                     transactions.length
                 );
+                const fetchPredictedSpending = async () => {
+                    try {
+                        const fetchedData = await monthlyMedianSpending(userID);
+                        setPredictedMonthlySpending(fetchedData);
+                    } catch (error) {
+                        console.error("Error fetching predicted spending data:", error);
+                    } finally {
+                        setIsLoading(false); // Set loading to false
+                    }
+                };
+            
+                fetchPredictedSpending();
                 const predictedMonthlySpending = await monthlyMedianSpending(userID);
                 console.log("predicted spending amount", predictedMonthlySpending)
                 if (transactions) {
@@ -397,6 +409,7 @@ export default function Statistics() {
                 <Text style={styles.historySubtitle}>
                     History
                 </Text>
+                
                 <TouchableOpacity
                     style={styles.addBudgetButton}
                     onPress={() => setSpendingModalVisible(true)}
@@ -481,6 +494,7 @@ export default function Statistics() {
                         value={spendingAmount}
                         onChangeText={setSpendingAmount}
                         keyboardType="numeric"
+                        returnKeyType="done"
                     />
                     <TextInput
                         style={styles.input}
@@ -541,7 +555,9 @@ export default function Statistics() {
                             { label: "Misc", value: "misc" },
                         ]}
                         setOpen={setCategoryOpen}
-                        setValue={setCategory}
+                        setValue={(value) => {
+                            setCategory(value); // Update the category state
+                        }}
                         style={styles.dropdown}
                         placeholder="Category"
                         placeholderStyle={{
@@ -556,10 +572,10 @@ export default function Statistics() {
                         open={frequencyOpen}
                         value={frequency}
                         items={[
-                            { label: "Daily", value: "Daily" },
-                            { label: "Weekly", value: "Weekly" },
+                            // { label: "Daily", value: "Daily" },
+                            // { label: "Weekly", value: "Weekly" },
                             { label: "Monthly", value: "Monthly" },
-                            { label: "Yearly", value: "Yearly" },
+                            // { label: "Yearly", value: "Yearly" },
                         ]}
                         setOpen={setFrequencyOpen}
                         setValue={setFrequency}
@@ -580,8 +596,13 @@ export default function Statistics() {
                         value={amount}
                         onChangeText={setAmount}
                         keyboardType="numeric"
+                        returnKeyType="done"
                     />
-                    <Text style={styles.budgetPredictionText}>The predicted amount you will spend in this category for the month is </Text>
+                    <Text style={styles.budgetPredictionText}>
+                        {predictedMonthlySpending?.[category]?.predictedAmount
+                            ? `Predicted spending for ${category}:\n $${predictedMonthlySpending[category].predictedAmount.toFixed(2)}`
+                            : ""}
+                    </Text>
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddBudget}
