@@ -21,7 +21,8 @@ import { fetchSpendingDataByPeriod } from "../backend/fetchData";
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
 import MonthlySpendingChart from "../../components/MonthlySpendingChart";
-
+import SavingsGoalCard from "../../components/SavingsGoalCard";
+import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import { useSpendingData } from "../../hooks/useSpendingData";
 
 const styles = StyleSheet.create({
@@ -322,6 +323,17 @@ export default function HomeTab() {
     }
   }, [user, view]);
 
+    // Add back the handler functions for the restored components
+    const handleSavingsGoalPress = () => {
+        // This would navigate to a savings goal detail page
+        // router.push("/savings/goal/1");
+    };
+
+    const handleViewAllInsights = () => {
+        // This would navigate to insights page
+        // router.push("/insights");
+    };
+
   const userName = userData?.username;
 
   const fallbackData = {
@@ -390,92 +402,104 @@ export default function HomeTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        {/* User Greeting Section at the top, but centered */}
-        <View style={[styles.greetingContainer, { justifyContent: 'center' }]}>
-          <Text style={[styles.greetingText, { textAlign: 'center' }]}>Hey, {userName}!</Text>
-        </View>
-
-        {/* Total Expenses Section */}
-        <View style={styles.expensesContainer}>
-          <DropDownPicker
-            open={viewOpen}
-            value={view}
-            items={[
-                { label: "Daily", value: "Daily" },
-                { label: "Weekly", value: "Weekly" },
-                { label: "Monthly", value: "Monthly" },
-                { label: "Yearly", value: "Yearly" },
-            ]}
-            setOpen={setViewOpen}
-            setValue={setView}
-            style={styles.viewDropdown}
-            textStyle={styles.viewDropdownText}
-            dropDownContainerStyle={styles.viewDropdownContainer}
-            containerStyle={styles.viewDropdownContainerStyle}
-          />
-          {/* Show loading indicator if data is loading */}
-          {spendingData.loading ? (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#4C38CD" />
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+            {/* User Greeting Section at the top, but centered */}
+            <View style={[styles.greetingContainer, { justifyContent: 'center' }]}>
+                <Text style={[styles.greetingText, { textAlign: 'center' }]}>Hey, {userName}!</Text>
             </View>
-          ) : (
-            <>
-              {/* Progress Circle using our component with modified props */}
-              <CircularProgress
-                key={`progress-${displayData.percentage}`} // Add key to force re-render on percentage change
-                percentage={displayData.percentage}
-                size={240}
-                strokeWidth={20}
-                useDynamicColor={true}
-                bgColor="#E6E6FA"
-                rotation={-90}
-                >
-                <Text style={styles.expensesLabel}>Expenses ({view})</Text>
-                <Text style={styles.expensesAmount}>
-                    ${displayData.totalSpent.toLocaleString()}
-                </Text>
-                <Text style={styles.expensesMax}>
-                    Out of ${displayData.totalBudget.toLocaleString()}
-                </Text>
-            </CircularProgress>
-            </>
-          )}
-        </View>
 
-        {/* Spending Trends Section */}
-        <View style={styles.trendsSectionContainer}>
-          <Text style={styles.sectionTitle}>Spending Trends</Text>
+            {/* Total Expenses Section */}
+            <View style={styles.expensesContainer}>
+                <DropDownPicker
+                    open={viewOpen}
+                    value={view}
+                    items={[
+                        { label: "Daily", value: "Daily" },
+                        { label: "Weekly", value: "Weekly" },
+                        { label: "Monthly", value: "Monthly" },
+                        { label: "Yearly", value: "Yearly" },
+                    ]}
+                    setOpen={setViewOpen}
+                    setValue={setView}
+                    style={styles.viewDropdown}
+                    textStyle={styles.viewDropdownText}
+                    dropDownContainerStyle={styles.viewDropdownContainer}
+                    containerStyle={styles.viewDropdownContainerStyle}
+                />
+                {/* Show loading indicator if data is loading */}
+                {spendingData.loading ? (
+                    <View style={styles.loadingContainer}>
+                        <ActivityIndicator size="large" color="#4C38CD" />
+                    </View>
+                ) : (
+                    <>
+                        {/* Progress Circle using our component with modified props */}
+                        <CircularProgress
+                            key={`progress-${displayData.percentage}`} // Add key to force re-render on percentage change
+                            percentage={displayData.percentage}
+                            size={240}
+                            strokeWidth={20}
+                            useDynamicColor={true}
+                            bgColor="#E6E6FA"
+                            rotation={-90}
+                            >
+                            <Text style={styles.expensesLabel}>Expenses ({view})</Text>
+                            <Text style={styles.expensesAmount}>
+                                ${displayData.totalSpent.toLocaleString()}
+                            </Text>
+                            <Text style={styles.expensesMax}>
+                                Out of ${displayData.totalBudget.toLocaleString()}
+                            </Text>
+                        </CircularProgress>
+                    </>
+                )}
+            </View>
 
-          {/* Chart content based on active tab */}
-          {renderActiveChart()}
+            {/* Spending Trends Section */}
+            <View style={styles.trendsSectionContainer}>
+                <Text style={styles.sectionTitle}>Spending Trends</Text>
 
-          {/* Pagination dots */}
-          <View style={styles.paginationDots}>
-            <TouchableOpacity
-              onPress={() => setActiveTab(0)}
-              style={[
-                styles.paginationDot,
-                activeTab === 0 && styles.activeDot,
-              ]}
+                {/* Chart content based on active tab */}
+                {renderActiveChart()}
+
+                {/* Pagination dots */}
+                <View style={styles.paginationDots}>
+                    <TouchableOpacity
+                        onPress={() => setActiveTab(0)}
+                        style={[
+                            styles.paginationDot,
+                            activeTab === 0 && styles.activeDot,
+                        ]}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setActiveTab(1)}
+                        style={[
+                            styles.paginationDot,
+                            activeTab === 1 && styles.activeDot,
+                        ]}
+                    />
+                    <TouchableOpacity
+                        onPress={() => setActiveTab(2)}
+                        style={[
+                            styles.paginationDot,
+                            activeTab === 2 && styles.activeDot,
+                        ]}
+                    />
+                </View>
+            </View>
+
+            {/* Restore Savings Goal Card */}
+            <SavingsGoalCard
+                title="New Car"
+                currentAmount={3500}
+                targetAmount={15000}
+                deadline="Dec 2023"
+                onPress={handleSavingsGoalPress}
             />
-            <TouchableOpacity
-              onPress={() => setActiveTab(1)}
-              style={[
-                styles.paginationDot,
-                activeTab === 1 && styles.activeDot,
-              ]}
-            />
-            <TouchableOpacity
-              onPress={() => setActiveTab(2)}
-              style={[
-                styles.paginationDot,
-                activeTab === 2 && styles.activeDot,
-              ]}
-            />
-          </View>
-        </View>
-      </ScrollView>
+
+            {/* Restore Financial Insights Card */}
+            <FinancialInsightsCard onViewAll={handleViewAllInsights} />
+        </ScrollView>
     </SafeAreaView>
-  );
+);
 }
