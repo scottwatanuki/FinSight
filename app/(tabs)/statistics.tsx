@@ -20,8 +20,17 @@ import {
     fetchUserBudget,
     fetchUserTransactionsByDate,
 } from "../backend/fetchData";
-import { fetchSpendingPerCategoryByDate, monthlyMedianSpending } from "../backend/analyzeMonthlySpending";
-import { setBudget, addSpending, deleteTransaction, resetBudget, resetAllBudgets } from "../backend/pushData";
+import {
+    fetchSpendingPerCategoryByDate,
+    monthlyMedianSpending,
+} from "../backend/analyzeMonthlySpending";
+import {
+    setBudget,
+    addSpending,
+    deleteTransaction,
+    resetBudget,
+    resetAllBudgets,
+} from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
 
@@ -74,7 +83,8 @@ export default function Statistics() {
     const [history, setHistory] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [refreshData, setRefreshData] = useState(false);
-    const [predictedMonthlySpending, setPredictedMonthlySpending] = useState(null);
+    const [predictedMonthlySpending, setPredictedMonthlySpending] =
+        useState(null);
     const [filterCategory, setFilterCategory] = useState(null); // State for selected filter category
     const [filterOpen, setFilterOpen] = useState(false);
 
@@ -89,7 +99,8 @@ export default function Statistics() {
 
     const [isResetModalVisible, setResetModalVisible] = useState(false);
     const [selectedBudget, setSelectedBudget] = useState(null);
-    const [isDeleteTransactionModalVisible, setDeleteTransactionModalVisible] = useState(false);
+    const [isDeleteTransactionModalVisible, setDeleteTransactionModalVisible] =
+        useState(false);
     const [selectedTransaction, setSelectedTransaction] = useState(null);
 
     const toggleResetModal = (budget = null) => {
@@ -113,14 +124,14 @@ export default function Statistics() {
                 // Reset all budgets
                 await resetAllBudgets(userID);
             }
-            
+
             setResetModalVisible(false);
-            setRefreshData(prev => !prev);
-            
+            setRefreshData((prev) => !prev);
+
             Alert.alert(
-                "Success", 
-                selectedBudget 
-                    ? `Budget for ${selectedBudget.category} has been reset` 
+                "Success",
+                selectedBudget
+                    ? `Budget for ${selectedBudget.category} has been reset`
                     : "All budgets have been reset"
             );
         } catch (error) {
@@ -133,14 +144,21 @@ export default function Statistics() {
         if (!userID || !selectedTransaction) return;
 
         try {
-            await deleteTransaction(userID, selectedTransaction.category, selectedTransaction.id);
+            await deleteTransaction(
+                userID,
+                selectedTransaction.category,
+                selectedTransaction.id
+            );
             setDeleteTransactionModalVisible(false);
-            setRefreshData(prev => !prev);
-            
+            setRefreshData((prev) => !prev);
+
             Alert.alert("Success", "Transaction has been deleted");
         } catch (error) {
             console.error("Error deleting transaction:", error);
-            Alert.alert("Error", "Failed to delete transaction. Please try again.");
+            Alert.alert(
+                "Error",
+                "Failed to delete transaction. Please try again."
+            );
         }
     };
 
@@ -176,40 +194,57 @@ export default function Statistics() {
                     console.log("no budgets set");
                     setBudgets([]);
                 }
-
-                const transactions = await fetchUserTransactionsByDate(
-                    userID,
-                    monthStartDate,
-                    monthEndDate
-                );
-                console.log(
-                    "from statistics, total transactons:",
-                    transactions.length
-                );
+                console.log("the date:", monthEndDate);
                 const fetchPredictedSpending = async () => {
                     try {
                         const fetchedData = await monthlyMedianSpending(userID);
                         setPredictedMonthlySpending(fetchedData);
                     } catch (error) {
-                        console.error("Error fetching predicted spending data:", error);
+                        console.error(
+                            "Error fetching predicted spending data:",
+                            error
+                        );
                     } finally {
                         setIsLoading(false); // Set loading to false
                     }
                 };
-            
+
                 fetchPredictedSpending();
-                const predictedMonthlySpending = await monthlyMedianSpending(userID);
-                console.log("predicted spending amount", predictedMonthlySpending)
+                const predictedMonthlySpending = await monthlyMedianSpending(
+                    userID
+                );
+                console.log(
+                    "predicted spending amount",
+                    predictedMonthlySpending
+                );
+                console.log(
+                    "Date range:",
+                    monthStartDate.toDate(),
+                    "-",
+                    monthEndDate.toDate()
+                );
+                console.log("Today's date:", new Date());
+                const transactions = await fetchUserTransactionsByDate(
+                    userID,
+                    monthStartDate,
+                    monthEndDate,
+                    budgetKeys
+                );
+                console.log("transactions inside DB:", transactions);
+                console.log(
+                    "from statistics, total transactons:",
+                    transactions.length
+                );
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
                         id: transaction.id,
                         category: transaction.category,
                         name: transaction["description"],
                         amount: transaction["amount"],
-                        category: transaction["category"],
                         date: transaction["date"].toDate().toLocaleDateString(),
                     }));
                     setHistory(newHistory);
+                    console.log("updated history:", history);
                 }
             } catch (error) {
                 console.error("budget retrieval failed: ", error);
@@ -219,10 +254,7 @@ export default function Statistics() {
             }
         };
         fetchBudgets();
-       
     }, [userID, refreshData]);
-
-
 
     const handleAddSpending = async () => {
         if (!userID) {
@@ -236,21 +268,21 @@ export default function Statistics() {
             description: spendingDescription,
             date: Timestamp.fromDate(spendingDate),
         };
-
         try {
             addSpending(spendingData, userID);
             setSpendingModalVisible(false);
         } catch (error) {
             console.error("Error adding spending data:", error);
         }
-        console.log({ category, frequency, amount });
+        console.log("added spending data");
         // Reset the form fields
         setSpendingAmount("");
         setSpendingCategory("");
         setSpendingDescription("");
         setSpendingDate(new Date());
-        toggleSpendingModal();
+        // toggleSpendingModal();
         setRefreshData((prev) => !prev);
+        console.log("refreshing");
     };
 
     const toggleModal = () => {
@@ -263,8 +295,7 @@ export default function Statistics() {
     };
 
     const filterTransactions = (transactions, category) => {
-
-        return transactions.filter(transaction => {
+        return transactions.filter((transaction) => {
             return transaction.category == category;
         });
     };
@@ -317,35 +348,34 @@ export default function Statistics() {
             case "Daily":
                 return budgets.map((budget) => {
                     return {
-                            ...budget,
-                            amount: budget.amount/30,
-                            limit: budget.limit/30,
-                        };
+                        ...budget,
+                        amount: budget.amount / 30,
+                        limit: budget.limit / 30,
+                    };
                 });
             case "Weekly":
                 return budgets.map((budget) => {
-                        return {
-                            ...budget,
-                            amount: budget.amount/7,
-                            limit: budget.limit/7,
-                        };
+                    return {
+                        ...budget,
+                        amount: budget.amount / 7,
+                        limit: budget.limit / 7,
+                    };
                 });
             case "Monthly":
                 return budgets.map((budget) => {
-                        return {
-                            ...budget,
-                            amount: budget.amount,
-                            limit: budget.limit
-                        };
-                    
+                    return {
+                        ...budget,
+                        amount: budget.amount,
+                        limit: budget.limit,
+                    };
                 });
             case "Yearly":
                 return budgets.map((budget) => {
-                        return {
-                            ...budget,
-                            amount: budget.amount*12,
-                            limit: budget.limit*12,
-                        };
+                    return {
+                        ...budget,
+                        amount: budget.amount * 12,
+                        limit: budget.limit * 12,
+                    };
                 });
             default:
                 return budgets;
@@ -353,7 +383,6 @@ export default function Statistics() {
     };
 
     return (
-        
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
@@ -361,7 +390,11 @@ export default function Statistics() {
                     style={styles.headerButton}
                     onPress={toggleModal}
                 >
-                    <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
+                    <IconSymbol
+                        size={28}
+                        name="pencil.circle"
+                        color="#3C3ADD"
+                    />
                 </TouchableOpacity>
                 <DropDownPicker
                     open={viewOpen}
@@ -393,34 +426,36 @@ export default function Statistics() {
                                 name={budget.icon}
                                 color="#9e9ded"
                             />
-                            <Text style={styles.category}>{budget.category}</Text>
+                            <Text style={styles.category}>
+                                {budget.category}
+                            </Text>
                             <View style={styles.amountContainer}>
                                 <Text style={styles.limit}>
                                     ${budget.amount.toFixed(2)} spent of
                                 </Text>
                                 <Text style={styles.amount}>
-                                    ${budget.limit.toFixed(2)} 
+                                    ${budget.limit.toFixed(2)}
                                 </Text>
                             </View>
                         </View>
                     ))
                 ) : (
-                    <Text style={styles.noBudgetsText}>Add Your Budgets To Get Started!</Text>
+                    <Text style={styles.noBudgetsText}>
+                        Add Your Budgets To Get Started!
+                    </Text>
                 )}
             </ScrollView>
-            
-            <View style={styles.historyHeaderContainer}> 
-                <Text style={styles.historySubtitle}>
-                    History
-                </Text>
-                
+
+            <View style={styles.historyHeaderContainer}>
+                <Text style={styles.historySubtitle}>History</Text>
+
                 <TouchableOpacity
                     style={styles.addBudgetButton}
                     onPress={() => setSpendingModalVisible(true)}
                 >
                     <IconSymbol size={28} name="plus.circle" color="#3C3ADD" />
                 </TouchableOpacity>
-                    <DropDownPicker
+                <DropDownPicker
                     open={filterOpen}
                     value={filterCategory}
                     items={[
@@ -445,23 +480,31 @@ export default function Statistics() {
                     dropDownContainerStyle={styles.filterDropdownContainer}
                 />
             </View>
-            
+
             <ScrollView contentContainerStyle={styles.scrollViewColumn}>
                 {getFilteredHistory().map((item) => (
                     <View key={item.id} style={{ marginBottom: 16 }}>
-                        <TouchableOpacity 
-                        style={styles.historyCard}
-                        onLongPress={() => toggleDeleteTransactionModal(item)}
-                    >
-                        <View style={styles.historyTextContainer}>
-                            <Text style={styles.historyName}>{item.name}</Text>
-                            <Text style={styles.historyDate}>{item.date}</Text>
-                            <Text style={styles.historyCategory}>{item.category}</Text>
-                        </View>
-                        <Text style={styles.historyAmount}>
-                            ${item.amount.toFixed(2)}
-                        </Text>
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.historyCard}
+                            onLongPress={() =>
+                                toggleDeleteTransactionModal(item)
+                            }
+                        >
+                            <View style={styles.historyTextContainer}>
+                                <Text style={styles.historyName}>
+                                    {item.name}
+                                </Text>
+                                <Text style={styles.historyDate}>
+                                    {item.date}
+                                </Text>
+                                <Text style={styles.historyCategory}>
+                                    {item.category}
+                                </Text>
+                            </View>
+                            <Text style={styles.historyAmount}>
+                                ${item.amount.toFixed(2)}
+                            </Text>
+                        </TouchableOpacity>
                     </View>
                 ))}
             </ScrollView>
@@ -473,7 +516,7 @@ export default function Statistics() {
                     <Text style={styles.modalTitle}>Add Expense</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
-                        onPress={() =>setSpendingModalVisible(false)}
+                        onPress={() => setSpendingModalVisible(false)}
                     >
                         <IconSymbol size={20} name="xmark" color="#000" />
                     </TouchableOpacity>
@@ -487,7 +530,10 @@ export default function Statistics() {
                             { label: "Groceries", value: "groceries" },
                             { label: "Dining", value: "dining" },
                             { label: "Subscriptions", value: "subscriptions" },
-                            { label: "Transportation", value: "transportation" },
+                            {
+                                label: "Transportation",
+                                value: "transportation",
+                            },
                             { label: "Recreational", value: "recreational" },
                             { label: "Shopping", value: "shopping" },
                             { label: "Health", value: "health" },
@@ -498,9 +544,7 @@ export default function Statistics() {
                         style={styles.input}
                         placeholder="Category"
                         placeholderStyle={{ color: "grey" }}
-                        containerStyle={[
-                            { zIndex: 1000 },
-                        ]}
+                        containerStyle={[{ zIndex: 1000 }]}
                     />
                     <TextInput
                         style={styles.input}
@@ -525,15 +569,15 @@ export default function Statistics() {
                         <Text style={styles.datePickerButtonText}>
                             {spendingDate.toLocaleDateString()}
                         </Text>
-                    
-                    {showDatePicker && (
-                        <DateTimePicker
-                            value={spendingDate}
-                            mode="date"
-                            display="default"
-                            onChange={onChange}
-                        />
-                    )}
+
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={spendingDate}
+                                mode="date"
+                                display="default"
+                                onChange={onChange}
+                            />
+                        )}
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.addButton}
@@ -563,7 +607,10 @@ export default function Statistics() {
                             { label: "Groceries", value: "groceries" },
                             { label: "Dining", value: "dining" },
                             { label: "Subscriptions", value: "subscriptions" },
-                            { label: "Transportation", value: "transportation" },
+                            {
+                                label: "Transportation",
+                                value: "transportation",
+                            },
                             { label: "Recreational", value: "recreational" },
                             { label: "Shopping", value: "shopping" },
                             { label: "Health", value: "health" },
@@ -615,7 +662,9 @@ export default function Statistics() {
                     />
                     <Text style={styles.budgetPredictionText}>
                         {predictedMonthlySpending?.[category]?.predictedAmount
-                            ? `Predicted spending for ${category}:\n $${predictedMonthlySpending[category].predictedAmount.toFixed(2)}`
+                            ? `Predicted spending for ${category}:\n $${predictedMonthlySpending[
+                                  category
+                              ].predictedAmount.toFixed(2)}`
                             : ""}
                     </Text>
                     <TouchableOpacity
@@ -632,13 +681,13 @@ export default function Statistics() {
             >
                 <View style={styles.modalContent}>
                     <Text style={styles.modalTitle}>
-                        {selectedBudget 
-                            ? `Reset ${selectedBudget.category} Budget` 
+                        {selectedBudget
+                            ? `Reset ${selectedBudget.category} Budget`
                             : "Reset All Budgets"}
                     </Text>
                     <Text style={styles.modalText}>
-                        {selectedBudget 
-                            ? `Are you sure you want to reset the budget for ${selectedBudget.category}?` 
+                        {selectedBudget
+                            ? `Are you sure you want to reset the budget for ${selectedBudget.category}?`
                             : "Are you sure you want to reset all budgets? This will set all budget amounts to zero."}
                     </Text>
                     <View style={styles.buttonRow}>
@@ -665,12 +714,17 @@ export default function Statistics() {
                     <Text style={styles.modalTitle}>Delete Transaction</Text>
                     <Text style={styles.modalText}>
                         Are you sure you want to delete this transaction?
-                        {selectedTransaction && `\n\n${selectedTransaction.name}: $${selectedTransaction.amount.toFixed(2)}`}
+                        {selectedTransaction &&
+                            `\n\n${
+                                selectedTransaction.name
+                            }: $${selectedTransaction.amount.toFixed(2)}`}
                     </Text>
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
                             style={[styles.button, styles.cancelButton]}
-                            onPress={() => setDeleteTransactionModalVisible(false)}
+                            onPress={() =>
+                                setDeleteTransactionModalVisible(false)
+                            }
                         >
                             <Text style={styles.buttonText}>Cancel</Text>
                         </TouchableOpacity>
@@ -695,48 +749,47 @@ const styles = StyleSheet.create({
         alignItems: "center",
         paddingHorizontal: 16,
     },
-    
+
     headerButtonsContainer: {
         flexDirection: "row",
         alignItems: "center",
     },
-    
+
     headerButton: {
         marginLeft: -35,
         padding: 0,
     },
-    
+
     expensesContainer: {
         marginTop: 0, // Reduced top margin
         marginBottom: 0, // Reduced bottom margin
         alignItems: "center",
     },
-    budgetsDropdown: {  
+    budgetsDropdown: {
         marginLeft: 10,
-
     },
-    
+
     viewDropdown: {
         borderWidth: 0,
         backgroundColor: "transparent",
         paddingRight: 45,
         marginLeft: 24,
     },
-    
+
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
         textAlign: "left",
     },
-    
+
     viewDropdownContainer: {
         borderWidth: 0,
     },
-    
+
     viewDropdownContainerStyle: {
         width: 150,
     },
-    
+
     container: {
         flex: 1,
         backgroundColor: "#ffffff",
@@ -748,7 +801,6 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         paddingHorizontal: 16,
         height: 600,
- 
     },
     title: {
         fontSize: 24,
@@ -919,7 +971,6 @@ const styles = StyleSheet.create({
     viewDropdownText: {
         color: "#3C3ADD",
         fontWeight: "bold",
-        
     },
     viewDropdownContainer: {
         borderWidth: 1,
@@ -998,5 +1049,5 @@ const styles = StyleSheet.create({
         color: "#3C3ADD",
         textAlign: "center",
         marginTop: 15,
-    }
+    },
 });

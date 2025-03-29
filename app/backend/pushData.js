@@ -1,5 +1,12 @@
 import { db } from "../../firebase";
-import { doc, updateDoc, collection, addDoc, deleteDoc, setDoc } from "firebase/firestore";
+import {
+    doc,
+    updateDoc,
+    collection,
+    addDoc,
+    deleteDoc,
+    setDoc,
+} from "firebase/firestore";
 import { fetchUserBudget } from "./fetchData";
 
 export async function setBudget(budgetData, userID) {
@@ -44,9 +51,17 @@ export async function addSpending(spendingData, userID) {
 
 export async function deleteTransaction(userID, category, transactionId) {
     try {
-        const transactionRef = doc(db, "spending_history", userID, category, transactionId);
+        const transactionRef = doc(
+            db,
+            "spending_history",
+            userID,
+            category,
+            transactionId
+        );
         await deleteDoc(transactionRef);
-        console.log(`Transaction ${transactionId} deleted successfully from ${category}`);
+        console.log(
+            `Transaction ${transactionId} deleted successfully from ${category}`
+        );
         return true;
     } catch (error) {
         console.error("Error deleting transaction:", error);
@@ -59,7 +74,7 @@ export async function resetBudget(userID, category) {
         const budgetRef = doc(db, "budgets", userID);
         // Update the document to remove only the specified category
         await updateDoc(budgetRef, {
-            [category]: 0
+            [category]: 0,
         });
         console.log(`Budget for ${category} reset to 0 for user ${userID}`);
         return true;
@@ -72,21 +87,21 @@ export async function resetBudget(userID, category) {
 export async function resetAllBudgets(userID) {
     try {
         const budgetRef = doc(db, "budgets", userID);
-        
+
         // Get the current budget document to find all categories
         const budget = await fetchUserBudget(userID);
-        
+
         if (!budget) {
             console.log("No budgets to reset");
             return false;
         }
-        
+
         // Create an object with all categories set to 0
         const resetBudgets = {};
-        Object.keys(budget).forEach(category => {
+        Object.keys(budget).forEach((category) => {
             resetBudgets[category] = 0;
         });
-        
+
         // Update the document with all budgets set to 0
         await setDoc(budgetRef, resetBudgets);
         console.log(`All budgets reset to 0 for user ${userID}`);
