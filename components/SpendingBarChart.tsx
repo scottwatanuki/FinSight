@@ -81,10 +81,23 @@ const SpendingBarChart = ({
                   ]}
                 ></View>
               </View>
-
+              categories = [
+                  "entertainment",
+                  "travel",
+                  "bills",
+                  "groceries",
+                  "dining",
+                  "subscriptions",
+                  "transportation",
+                  "recreational",
+                  "shopping",
+                  "health",
+                  "misc",
+              ];
               {/* Category name label */}
-              <Text style={styles.barLabel}>{item.name}</Text>
+              
             </View>
+            <Text style={styles.barLabel}>{item.name.substring(0,4)}</Text>
           </View>
         ))}
       </View>
@@ -163,7 +176,8 @@ const styles = StyleSheet.create({
   //   borderColor: "white",
   // },
   barLabel: {
-    marginTop: 10,
+    marginTop: 0,
+
     fontSize: 12,
     color: "#333",
   },

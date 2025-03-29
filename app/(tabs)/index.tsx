@@ -268,7 +268,19 @@ export default function HomeTab() {
     });
 
     // Listen for spending history changes across all categories
-    const categories = ["food", "bills", "shopping", "health"];
+    const categories = [
+      "entertainment",
+      "travel",
+      "bills",
+      "groceries",
+      "dining",
+      "subscriptions",
+      "transportation",
+      "recreational",
+      "shopping",
+      "health",
+      "misc",
+  ];
     const transactionUnsubscribes = [];
 
     categories.forEach(category => {
@@ -443,7 +455,7 @@ export default function HomeTab() {
                             bgColor="#E6E6FA"
                             rotation={-90}
                             >
-                            <Text style={styles.expensesLabel}>Expenses ({view})</Text>
+                            <Text style={styles.expensesLabel}>Expenses</Text>
                             <Text style={styles.expensesAmount}>
                                 ${displayData.totalSpent.toLocaleString()}
                             </Text>

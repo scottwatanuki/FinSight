@@ -481,7 +481,8 @@ export default function Statistics() {
                 />
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollViewColumn}>
+            <ScrollView style={styles.scrollViewColumn} contentContainerStyle={{ flexGrow: 1 }} // Ensures content can grow beyond the fixed height
+    showsVerticalScrollIndicator={true}>
                 {getFilteredHistory().map((item) => (
                     <View key={item.id} style={{ marginBottom: 16 }}>
                         <TouchableOpacity
@@ -801,6 +802,7 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         paddingHorizontal: 16,
         height: 600,
+
     },
     title: {
         fontSize: 24,
