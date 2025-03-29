@@ -97,7 +97,7 @@ const SpendingBarChart = ({
               {/* Category name label */}
               
             </View>
-            <Text style={styles.barLabel}>{item.name.substring(0,4)}</Text>
+            <Text style={styles.barLabel}>{item.name.substring(0,3)}</Text>
           </View>
         ))}
       </View>
