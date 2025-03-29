@@ -386,7 +386,7 @@ export default function Statistics() {
         <View style={styles.container}>
             <View style={styles.header}>
                 <Text style={styles.subtitle}>Budgets</Text>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                     style={styles.headerButton}
                     onPress={toggleModal}
                 >
@@ -395,7 +395,25 @@ export default function Statistics() {
                         name="pencil.circle"
                         color="#3C3ADD"
                     />
-                </TouchableOpacity>
+                </TouchableOpacity> */}
+                <View style={styles.headerButtonsContainer}>
+                     <TouchableOpacity
+                         style={styles.headerButton}
+                         onPress={toggleModal}
+                     >
+                         <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
+                     </TouchableOpacity>
+                     
+                     <TouchableOpacity
+                         style={styles.headerButton}
+                         onPress={() => toggleResetModal()}
+                     >
+                         <IconSymbol size={28} name="arrow.counterclockwise" color="#FF5757" />
+                     </TouchableOpacity>
+                 </View>
+          
+ 
+             <View style={styles.expensesContainer}>
                 <DropDownPicker
                     open={viewOpen}
                     value={view}
@@ -413,6 +431,7 @@ export default function Statistics() {
                     containerStyle={styles.viewDropdownContainerStyle}
                 />
             </View>
+            </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollView}
@@ -420,7 +439,12 @@ export default function Statistics() {
             >
                 {getFilteredBudgets().length > 0 ? (
                     getFilteredBudgets().map((budget, index) => (
-                        <View key={index} style={styles.card}>
+                        // <View key={index} style={styles.card}>
+                        <TouchableOpacity 
+                         key={index} 
+                         style={styles.card}
+                         onLongPress={() => toggleResetModal(budget)}
+                     >
                             <IconSymbol
                                 size={28}
                                 name={budget.icon}
@@ -437,7 +461,8 @@ export default function Statistics() {
                                     ${budget.limit.toFixed(2)}
                                 </Text>
                             </View>
-                        </View>
+                       
+                        </TouchableOpacity>
                     ))
                 ) : (
                     <Text style={styles.noBudgetsText}>
@@ -689,7 +714,7 @@ export default function Statistics() {
                     <Text style={styles.modalText}>
                         {selectedBudget
                             ? `Are you sure you want to reset the budget for ${selectedBudget.category}?`
-                            : "Are you sure you want to reset all budgets? This will set all budget amounts to zero."}
+                            : "Are you sure you want to reset all budgets?\n This will set all budget amounts to zero."}
                     </Text>
                     <View style={styles.buttonRow}>
                         <TouchableOpacity
@@ -753,7 +778,10 @@ const styles = StyleSheet.create({
 
     headerButtonsContainer: {
         flexDirection: "row",
-        alignItems: "center",
+        justifyContent: "space-between",
+        alignItems: "right",
+        width: 30,
+        marginLeft: 30,
     },
 
     headerButton: {
@@ -1051,5 +1079,37 @@ const styles = StyleSheet.create({
         color: "#3C3ADD",
         textAlign: "center",
         marginTop: 15,
+    },
+    modalText: {
+        fontSize: 16,
+        marginBottom: 20,
+        textAlign: 'center',
+        lineHeight: 22,
+    },
+    buttonRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        width: '100%',
+    },
+    button: {
+        padding: 12,
+        borderRadius: 8,
+        flex: 1,
+        marginHorizontal: 5,
+        alignItems: 'center',
+    },
+    cancelButton: {
+        backgroundColor: '#E0E0E0',
+    },
+    resetButton: {
+        backgroundColor: '#FF5757',
+    },
+    deleteButton: {
+        backgroundColor: '#FF5757',
+    },
+    buttonText: {
+        fontSize: 16,
+        fontWeight: 'bold',
+        color: 'white',
     },
 });
