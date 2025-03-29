@@ -11,7 +11,19 @@ const {
 const { Timestamp } = require("firebase/firestore");
 
 //hard coded for now
-let categories = ["bills", "shopping", "food", "health"];
+let categories = [
+    "entertainment",
+    "travel",
+    "bills",
+    "groceries",
+    "dining",
+    "subscriptions",
+    "transportation",
+    "recreational",
+    "shopping",
+    "health",
+    "misc",
+];
 
 // FOR TESTING
 const monthStartDate = Timestamp.fromDate(new Date("2025-03-01"));
@@ -82,10 +94,15 @@ async function fetchUserTransactionsByDate(
         console.log(
             `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
         );
-
+        console.log(
+            "fetching transactions using these categories:",
+            budgetKeys
+        );
         const userRef = doc(db, "spending_history", userID);
         let transactions = [];
-
+        if (!budgetKeys) {
+            budgetKeys = categories;
+        }
         for (const category of budgetKeys) {
             const categoryRef = collection(userRef, category);
             const filterDates = query(
