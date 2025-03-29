@@ -474,30 +474,7 @@ export default function HomeTab() {
                 {/* Chart content based on active tab */}
                 {renderActiveChart()}
 
-                {/* Pagination dots */}
-                <View style={styles.paginationDots}>
-                    <TouchableOpacity
-                        onPress={() => setActiveTab(0)}
-                        style={[
-                            styles.paginationDot,
-                            activeTab === 0 && styles.activeDot,
-                        ]}
-                    />
-                    <TouchableOpacity
-                        onPress={() => setActiveTab(1)}
-                        style={[
-                            styles.paginationDot,
-                            activeTab === 1 && styles.activeDot,
-                        ]}
-                    />
-                    <TouchableOpacity
-                        onPress={() => setActiveTab(2)}
-                        style={[
-                            styles.paginationDot,
-                            activeTab === 2 && styles.activeDot,
-                        ]}
-                    />
-                </View>
+                
             </View>
 
             {/* Restore Savings Goal Card */}
