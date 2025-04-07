@@ -165,11 +165,15 @@ async function compareBudgetVsSpendingByDate(
             budgetKeys
         );
         let budgets = await fetchUserBudget(userID);
-
+        console.log("budgets", budgets);
         let remainingBudget = {};
         for (const category of categories) {
+            if (!budgets[category] || !spendingBreakdown[category]) {
+                continue;
+            }
+            let spent = Number(budgets[category]["amount"]);
             remainingBudget[category] =
-                budgets[category] - spendingBreakdown[category]["total"];
+                spent - spendingBreakdown[category]["total"];
         }
         console.log(`${userID}'s remaining budget:`);
         console.log(remainingBudget);
@@ -178,6 +182,52 @@ async function compareBudgetVsSpendingByDate(
         console.log(
             "Error in compareBudgetvsSpendingByDate. Cannot compare budget vs spending."
         );
+        return null;
+    }
+}
+
+async function calculateTotalSavings(userID) {
+    try {
+        let savings = { totalSavings: 0 };
+
+        const start = new Date("2025-01-01");
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        for (let year = 2025; year <= currentYear; year++) {
+            const monthStart = year === 2025 ? 0 : 0;
+            const monthEnd = year === currentYear ? currentMonth : 11;
+
+            for (let month = monthStart; month <= monthEnd; month++) {
+                const monthStartDate = new Date(year, month, 1);
+                const monthEndDate = new Date(year, month + 1, 0);
+
+                const monthlyRemaining = await compareBudgetVsSpendingByDate(
+                    userID,
+                    monthStartDate,
+                    monthEndDate
+                );
+
+                if (monthlyRemaining) {
+                    for (const cat in monthlyRemaining) {
+                        const value = monthlyRemaining[cat];
+                        if (value > 0) {
+                            savings.totalSavings += value;
+                            if (!savings[cat]) {
+                                savings[cat] = 0;
+                            }
+                            savings[cat] += value;
+                        }
+                    }
+                }
+            }
+        }
+
+        console.log("from analyzemonthlyspending, total savings", savings);
+        return savings;
+    } catch (error) {
+        console.error("Error calculating total savings:", error);
         return null;
     }
 }
@@ -258,6 +308,94 @@ async function fetchTotalSpendingPerCategory(userID) {
         return null;
     }
 }
+/**
+ * 
+ * @param {*} userID 
+ * @returns 
+{
+  Lifestyle: {
+    totalPredicted: 340, //total prediction amount over all subcategories
+    totalHistorical: 615,
+    totalMonths: 5,
+    subcategories: [ 'entertainment', 'dining', 'recreational', 'shopping' ],
+    count: 4, //len subcategories array
+    avgPredicted: 85, // ***USE FOR HOME PAGE**
+    avgHistorical: 153.75
+  },
+}
+ */
+async function groupMonthlyMedianSpending(userID) {
+    try {
+        const predictions = await monthlyMedianSpending(userID);
+        const categoryMapping = {
+            groceries: "Essentials",
+            bills: "Essentials",
+            health: "Essentials",
+            subscriptions: "Essentials",
+
+            entertainment: "Lifestyle",
+            dining: "Lifestyle",
+            recreational: "Lifestyle",
+            shopping: "Lifestyle",
+
+            transportation: "Travel",
+            travel: "Travel",
+
+            misc: "Miscellaneous",
+        };
+        let grouped_predictions = {};
+        for (const [category, data] of Object.entries(predictions)) {
+            // add up
+            const groupName = categoryMapping[category];
+            if (!groupName) continue;
+            if (!grouped_predictions[groupName]) {
+                grouped_predictions[groupName] = {
+                    totalPredicted: 0,
+                    totalHistorical: 0,
+                    totalMonths: 0,
+                    subcategories: [],
+                    count: 0,
+                };
+            }
+            const amount = Number(data.predictedAmount) || 0;
+            const months = Number(data.monthsUsed) || 0;
+            const historicalTotal = Number(data.historicalData?.total) || 0;
+
+            console.log(
+                "curr predicted amount",
+                grouped_predictions[groupName]
+            );
+            grouped_predictions[groupName].totalPredicted += amount;
+            grouped_predictions[groupName].totalHistorical += historicalTotal;
+            grouped_predictions[groupName].totalMonths += months;
+            grouped_predictions[groupName].subcategories.push(category);
+            grouped_predictions[groupName].count++;
+        }
+
+        // avg out each cat
+        for (const [groupName, groupData] of Object.entries(
+            grouped_predictions
+        )) {
+            groupData.avgPredicted =
+                groupData.count > 0
+                    ? groupData.totalPredicted / groupData.count
+                    : 0;
+
+            groupData.avgHistorical =
+                groupData.count > 0
+                    ? groupData.totalHistorical / groupData.count
+                    : 0;
+        }
+        console.log(
+            `${userID}'s consolidated predicted spending for next month:`
+        );
+        console.log(grouped_predictions);
+        return grouped_predictions;
+    } catch (error) {
+        console.error("Error analyzing monthly spending:", error);
+        return null;
+    }
+}
 
 // let spendingData = fetchTotalSpendingPerCategory(
 //     "7bx47gI4c5WuiKj8RsFEbQfUmEm1"
@@ -267,10 +405,12 @@ async function fetchTotalSpendingPerCategory(userID) {
 //     monthStartDate,
 //     monthEndDate
 // ); //2
-monthlyMedianSpending(mockUserID);
+calculateTotalSavings(mockUserID);
 
 module.exports = {
     fetchSpendingPerCategoryByDate,
     fetchTotalSpendingPerCategory,
     monthlyMedianSpending,
+    groupMonthlyMedianSpending,
+    calculateTotalSavings,
 };
