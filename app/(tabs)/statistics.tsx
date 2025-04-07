@@ -176,24 +176,25 @@ export default function Statistics() {
                         monthEndDate,
                         budgetKeys //fetches current categories the user has transactions in
                     );
-                console.log(
-                    "from statistics, spending per category:",
-                    spendingPerCategory
-                );
-
                 if (budgetKeys && userBudgets && spendingPerCategory) {
-                    const newBudgets = budgetKeys.map((key) => ({
-                        category: key,
-                        amount: spendingPerCategory[key]?.["total"] || 0,
-                        limit: userBudgets[key] || 0,
-                        icon: (iconDict[key] as IconSymbolName) || "null",
-                    }));
-
+                    console.log(
+                        "All required data exists, proceeding with mapping"
+                    );
+                    const newBudgets = budgetKeys.map((key) => {
+                        return {
+                            category: key,
+                            amount: spendingPerCategory[key]?.["total"] || 0,
+                            limit: userBudgets[key]["amount"] || 0,
+                            frequency: userBudgets[key]["frequency"] || "null",
+                            icon: (iconDict[key] as IconSymbolName) || "null",
+                        };
+                    });
                     setBudgets(newBudgets);
                 } else {
                     console.log("no budgets set");
                     setBudgets([]);
                 }
+                console.log("new budget", budgets);
                 console.log("the date:", monthEndDate);
                 const fetchPredictedSpending = async () => {
                     try {
@@ -397,40 +398,47 @@ export default function Statistics() {
                     />
                 </TouchableOpacity> */}
                 <View style={styles.headerButtonsContainer}>
-                     <TouchableOpacity
-                         style={styles.headerButton}
-                         onPress={toggleModal}
-                     >
-                         <IconSymbol size={28} name="pencil.circle" color="#3C3ADD" />
-                     </TouchableOpacity>
-                     
-                     <TouchableOpacity
-                         style={styles.headerButton}
-                         onPress={() => toggleResetModal()}
-                     >
-                         <IconSymbol size={28} name="arrow.counterclockwise" color="#FF5757" />
-                     </TouchableOpacity>
-                 </View>
-          
- 
-             <View style={styles.expensesContainer}>
-                <DropDownPicker
-                    open={viewOpen}
-                    value={view}
-                    items={[
-                        { label: "Daily", value: "Daily" },
-                        { label: "Weekly", value: "Weekly" },
-                        { label: "Monthly", value: "Monthly" },
-                        { label: "Yearly", value: "Yearly" },
-                    ]}
-                    setOpen={setViewOpen}
-                    setValue={setView}
-                    style={styles.viewDropdown}
-                    textStyle={styles.viewDropdownText}
-                    dropDownContainerStyle={styles.viewDropdownContainer}
-                    containerStyle={styles.viewDropdownContainerStyle}
-                />
-            </View>
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={toggleModal}
+                    >
+                        <IconSymbol
+                            size={28}
+                            name="pencil.circle"
+                            color="#3C3ADD"
+                        />
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={styles.headerButton}
+                        onPress={() => toggleResetModal()}
+                    >
+                        <IconSymbol
+                            size={28}
+                            name="arrow.counterclockwise"
+                            color="#FF5757"
+                        />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.expensesContainer}>
+                    <DropDownPicker
+                        open={viewOpen}
+                        value={view}
+                        items={[
+                            { label: "Daily", value: "Daily" },
+                            { label: "Weekly", value: "Weekly" },
+                            { label: "Monthly", value: "Monthly" },
+                            { label: "Yearly", value: "Yearly" },
+                        ]}
+                        setOpen={setViewOpen}
+                        setValue={setView}
+                        style={styles.viewDropdown}
+                        textStyle={styles.viewDropdownText}
+                        dropDownContainerStyle={styles.viewDropdownContainer}
+                        containerStyle={styles.viewDropdownContainerStyle}
+                    />
+                </View>
             </View>
 
             <ScrollView
@@ -440,11 +448,11 @@ export default function Statistics() {
                 {getFilteredBudgets().length > 0 ? (
                     getFilteredBudgets().map((budget, index) => (
                         // <View key={index} style={styles.card}>
-                        <TouchableOpacity 
-                         key={index} 
-                         style={styles.card}
-                         onLongPress={() => toggleResetModal(budget)}
-                     >
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.card}
+                            onLongPress={() => toggleResetModal(budget)}
+                        >
                             <IconSymbol
                                 size={28}
                                 name={budget.icon}
@@ -461,7 +469,6 @@ export default function Statistics() {
                                     ${budget.limit.toFixed(2)}
                                 </Text>
                             </View>
-                       
                         </TouchableOpacity>
                     ))
                 ) : (
@@ -506,8 +513,11 @@ export default function Statistics() {
                 />
             </View>
 
-            <ScrollView style={styles.scrollViewColumn} contentContainerStyle={{ flexGrow: 1 }} // Ensures content can grow beyond the fixed height
-    showsVerticalScrollIndicator={true}>
+            <ScrollView
+                style={styles.scrollViewColumn}
+                contentContainerStyle={{ flexGrow: 1 }} // Ensures content can grow beyond the fixed height
+                showsVerticalScrollIndicator={true}
+            >
                 {getFilteredHistory().map((item) => (
                     <View key={item.id} style={{ marginBottom: 16 }}>
                         <TouchableOpacity
@@ -830,7 +840,6 @@ const styles = StyleSheet.create({
         flexDirection: "column",
         paddingHorizontal: 16,
         height: 600,
-
     },
     title: {
         fontSize: 24,
@@ -1083,33 +1092,33 @@ const styles = StyleSheet.create({
     modalText: {
         fontSize: 16,
         marginBottom: 20,
-        textAlign: 'center',
+        textAlign: "center",
         lineHeight: 22,
     },
     buttonRow: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        width: '100%',
+        flexDirection: "row",
+        justifyContent: "space-between",
+        width: "100%",
     },
     button: {
         padding: 12,
         borderRadius: 8,
         flex: 1,
         marginHorizontal: 5,
-        alignItems: 'center',
+        alignItems: "center",
     },
     cancelButton: {
-        backgroundColor: '#E0E0E0',
+        backgroundColor: "#E0E0E0",
     },
     resetButton: {
-        backgroundColor: '#FF5757',
+        backgroundColor: "#FF5757",
     },
     deleteButton: {
-        backgroundColor: '#FF5757',
+        backgroundColor: "#FF5757",
     },
     buttonText: {
         fontSize: 16,
-        fontWeight: 'bold',
-        color: 'white',
+        fontWeight: "bold",
+        color: "white",
     },
 });

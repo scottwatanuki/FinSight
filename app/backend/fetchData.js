@@ -32,12 +32,14 @@ const monthEndDate = Timestamp.fromDate(new Date("2025-03-31"));
 async function fetchUserBudgetKeys(userID) {
     try {
         console.log("fetching user budget keys...");
-        const docRef = doc(db, "budgets", userID);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-            const data = docSnap.data();
-            const keys = Object.keys(data);
-            console.log("doc keys:", keys);
+        const budgetRef = collection(db, "budgets", userID, "settings");
+        const budgetSnap = await getDocs(budgetRef);
+        if (!budgetSnap.empty) {
+            const keys = [];
+            budgetSnap.forEach((doc) => {
+                keys.push(doc.data().category);
+            });
+            console.log("User has established these categories: ", keys);
             return keys;
         } else {
             console.log("doc doesn't exist");
@@ -48,36 +50,44 @@ async function fetchUserBudgetKeys(userID) {
     }
 }
 
-async function fetchAllBudgets() {
-    try {
-        console.log("Fetching data...");
-        const querySnapshot = await getDocs(collection(db, "budgets")); // all docs in budgets
-        let budgets = [];
-        querySnapshot.forEach((doc) => {
-            budgets.push({ id: doc.id, ...doc.data() });
-        });
-        console.log("budgets:", budgets);
-        return budgets;
-    } catch (error) {
-        console.error("Error fetching document:", error);
-    }
-}
-
+// async function fetchAllBudgets() {
+//     try {
+//         console.log("Fetching data...");
+//         const querySnapshot = await getDocs(collection(db, "budgets")); // all docs in budgets
+//         let budgets = [];
+//         querySnapshot.forEach((doc) => {
+//             budgets.push({ id: doc.id, ...doc.data() });
+//         });
+//         console.log("budgets:", budgets);
+//         return budgets;
+//     } catch (error) {
+//         console.error("Error fetching document:", error);
+//     }
+// }
+/**
+ *
+ * @param {*} userID
+ * @returns {"bills": {"amount": "1200", "category": "bills", "frequency": "Monthly"},
+ * "entertainment": {"amount": "20", "category": "entertainment", "frequency": "Monthly"},
+ * "groceries": {"amount": "400", "category": "groceries", "frequency": "Monthly"}}
+ */
 async function fetchUserBudget(userID) {
     try {
         console.log(`Fetching budget for user: ${userID}`);
 
-        const budgetRef = doc(db, "budgets", userID);
-        const budgetSnap = await getDoc(budgetRef);
+        const budgetRef = collection(db, "budgets", userID, "settings"); //enter collections
+        const budgetSnap = await getDocs(budgetRef);
 
-        if (budgetSnap.exists()) {
-            const budgetData = budgetSnap.data();
-            console.log("User budget:", budgetData);
-            return budgetData;
-        } else {
+        if (budgetSnap.empty) {
             console.log("No budget found for this user.");
             return null;
         }
+        const budgetData = {};
+        budgetSnap.forEach((doc) => {
+            budgetData[doc.data().category] = doc.data();
+        });
+        console.log("from fetchData.js, fetched user budget:", budgetData);
+        return budgetData;
     } catch (error) {
         console.error("Error fetching user budget:", error);
         return null;
@@ -365,7 +375,6 @@ function getCategoryColor(category) {
 
 module.exports = {
     fetchUserBudgetKeys,
-    fetchAllBudgets,
     fetchUserBudget,
     fetchUserTransactionsByDate,
     fetchSpendingHistoryByCategory,
