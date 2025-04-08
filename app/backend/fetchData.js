@@ -370,6 +370,43 @@ function getCategoryColor(category) {
     return colors[category.toLowerCase()] || "#999999";
 }
 
+async function fetchUserGoals(userID) {
+    try {
+        const settingsRef = collection(db, "goals", userID, "settings");
+        const snapshot = await getDocs(settingsRef);
+
+        const goals = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+        }));
+
+        return goals;
+    } catch (error) {
+        console.error("in fetchData, error fetching user goals:", error);
+        return [];
+    }
+}
+
+async function fetchGoalByID(userID, goalID) {
+    try {
+        const goalRef = doc(db, "goals", userID, "settings", goalID);
+        const goalSnap = await getDoc(goalRef);
+
+        if (!goalSnap.exists()) {
+            console.log("No such goal!");
+            return null;
+        }
+
+        return {
+            id: goalSnap.id,
+            ...goalSnap.data(),
+        };
+    } catch (error) {
+        console.error("in fetchData, error fetching goal by ID:", error);
+        return null;
+    }
+}
+
 // Call function for testing
 // fetchTotalSpendingPerCategory("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
 
@@ -381,4 +418,6 @@ module.exports = {
     fetchAllUserTransactions,
     fetchSpendingDataByPeriod,
     getDateRange,
+    fetchUserGoals,
+    fetchGoalByID,
 };
