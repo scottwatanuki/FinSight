@@ -9,6 +9,37 @@ import {
 } from "firebase/firestore";
 import { fetchUserBudget } from "./fetchData";
 
+/**
+ * 
+ * @param {*} userID
+ * @param {*} goalData: {
+  goalName: "Emergency Fund",
+  targetAmount: 5000, // total $$ needed
+  currentAmount: 1200, // saved so far
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  isCompleted: false,
+}
+ * @returns 
+ */
+export async function addGoal(userID, goalData) {
+    try {
+        const goalsRef = collection(db, "users", userID, "goals");
+        const docRef = await addDoc(goalsRef, {
+            goalName: goalData.goalName,
+            targetAmount: Number(goalData.targetAmount),
+            currentAmount: Number(goalData.currentAmount) || 0,
+            isCompleted: false,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+        });
+        return docRef.id;
+    } catch (error) {
+        console.error("Error adding goal in pushData.js :", error);
+        return null;
+    }
+}
+
 export async function setBudget(budgetData, userID) {
     try {
         const budgetRef = collection(db, "budgets", userID, "settings");
