@@ -1,13 +1,15 @@
-import { db } from "../../firebase";
-import {
+const { db } = require("../../firebase");
+const {
     doc,
     updateDoc,
     collection,
     addDoc,
     deleteDoc,
     setDoc,
-} from "firebase/firestore";
-import { fetchUserBudget } from "./fetchData";
+    increment,
+    getDoc,
+} = require("firebase/firestore");
+const { fetchUserBudget } = require("./fetchData");
 
 /**
  * 
@@ -16,22 +18,19 @@ import { fetchUserBudget } from "./fetchData";
   goalName: "Emergency Fund",
   targetAmount: 5000, // total $$ needed
   currentAmount: 1200, // saved so far
-  createdAt: timestamp,
-  updatedAt: timestamp,
   isCompleted: false,
 }
  * @returns 
  */
-export async function addGoal(userID, goalData) {
+async function addGoal(userID, goalData) {
     try {
-        const goalsRef = collection(db, "users", userID, "goals");
+        const goalsRef = collection(db, "goals", userID, "settings");
+        console.log("from pushData.js, adding goal in db");
         const docRef = await addDoc(goalsRef, {
             goalName: goalData.goalName,
             targetAmount: Number(goalData.targetAmount),
             currentAmount: Number(goalData.currentAmount) || 0,
             isCompleted: false,
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp(),
         });
         return docRef.id;
     } catch (error) {
@@ -40,7 +39,39 @@ export async function addGoal(userID, goalData) {
     }
 }
 
-export async function setBudget(budgetData, userID) {
+/**
+ *
+ * @param {*} userID
+ * @param {*} goalID: goal key i.e 3PQT3jUdWhdfKlI8lSBw
+ * @param {*} amountToAdd: number
+ * @returns
+ */
+async function updateGoal(userID, goalID, amountToAdd) {
+    try {
+        const goalRef = doc(db, "goals", userID, "settings", goalID);
+        const amount = Number(amountToAdd);
+
+        await updateDoc(goalRef, {
+            currentAmount: increment(amount),
+        });
+
+        const goalSnap = await getDoc(goalRef);
+        const goal = goalSnap.data();
+
+        if (goal.currentAmount >= goal.targetAmount && !goal.isCompleted) {
+            await updateDoc(goalRef, {
+                isCompleted: true,
+            });
+        }
+
+        return goalID;
+    } catch (error) {
+        console.error("Error updating goal in pushData.js:", error);
+        return null;
+    }
+}
+
+async function setBudget(budgetData, userID) {
     try {
         const budgetRef = collection(db, "budgets", userID, "settings");
         const { category, amount, frequency } = budgetData;
@@ -56,7 +87,7 @@ export async function setBudget(budgetData, userID) {
     }
 }
 
-export async function addSpending(spendingData, userID) {
+async function addSpending(spendingData, userID) {
     try {
         const { category, amount, date, description } = spendingData;
         const spendingRef = collection(
@@ -72,7 +103,7 @@ export async function addSpending(spendingData, userID) {
     }
 }
 
-export async function deleteTransaction(userID, category, transactionId) {
+async function deleteTransaction(userID, category, transactionId) {
     try {
         const transactionRef = doc(
             db,
@@ -92,7 +123,7 @@ export async function deleteTransaction(userID, category, transactionId) {
     }
 }
 
-export async function resetBudget(userID, category) {
+async function resetBudget(userID, category) {
     try {
         const budgetRef = doc(db, "budgets", userID);
         // Update the document to remove only the specified category
@@ -107,7 +138,7 @@ export async function resetBudget(userID, category) {
     }
 }
 
-export async function resetAllBudgets(userID) {
+async function resetAllBudgets(userID) {
     try {
         const budgetRef = doc(db, "budgets", userID);
 
@@ -134,3 +165,27 @@ export async function resetAllBudgets(userID) {
         return false;
     }
 }
+
+module.exports = {
+    addGoal,
+    setBudget,
+    addSpending,
+    deleteTransaction,
+    resetBudget,
+    resetAllBudgets,
+};
+const mockGoal = {
+    goalName: "Emergency Fund",
+    targetAmount: 5000,
+    currentAmount: 0,
+};
+const mockUserID = "7bx47gI4c5WuiKj8RsFEbQfUmEm1";
+const mockGoalID = "3PQT3jUdWhdfKlI8lSBw";
+
+async function runTest() {
+    // const goalID = await addGoal(mockUserID, mockGoal);
+    // console.log(goalID);
+    updateGoal(mockUserID, mockGoalID, 300);
+}
+
+runTest();
