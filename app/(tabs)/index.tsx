@@ -460,7 +460,8 @@ export default function HomeTab() {
                                 ${displayData.totalSpent.toLocaleString()}
                             </Text>
                             <Text style={styles.expensesMax}>
-                                Out of ${displayData.totalBudget.toLocaleString()}
+                                Out of ${(typeof displayData.totalBudget === 'number' && !isNaN(displayData.totalBudget) ? 
+                                  displayData.totalBudget : 0).toLocaleString()}
                             </Text>
                         </CircularProgress>
                     </>
