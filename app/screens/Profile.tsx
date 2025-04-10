@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -9,8 +9,11 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  Modal,
+  Pressable,
+  Button,
 } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Feather, AntDesign, FontAwesome6 } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
 import { logoutUser } from "../services/auth";
 import { useRouter } from "expo-router";
@@ -18,8 +21,138 @@ import { doc, getDoc, collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import * as ImagePicker from "expo-image-picker";
 import { uploadProfilePicture } from "../services/userProfile";
-import imageUtils from "../utils/imageUtils";
+import * as FileSystem from "expo-file-system";
+import { Camera, CameraType, CameraView, useCameraPermissions } from "expo-camera";
 
+// -----------------------------------------------------
+// CardScannerModal
+// This component shows the camera view inside a modal.
+// When a picture is taken, it extracts card details using OCR.
+function CardScannerModal({ visible, onClose, onCardScanned }) {
+  const [permission, requestPermission] = useCameraPermissions();
+  const cameraRef = useRef(null);
+  const [facing, setFacing] = useState<CameraType>("back");
+
+  // If the permission hasn’t been determined yet
+  if (!permission) {
+    return null;
+  }
+
+  // If permission is not granted, show a prompt
+  if (!permission.granted) {
+    return (
+      <View style={[styles.modalContainer, styles.centered]}>
+        <Text style={{ textAlign: "center", color: "white", marginBottom: 12 }}>
+          We need your permission to use the camera
+        </Text>
+        <Button onPress={requestPermission} title="Grant permission" />
+      </View>
+    );
+  }
+
+  const takePicture = async () => {
+    try {
+      const photo = await cameraRef.current?.takePictureAsync();
+      if (photo?.uri) {
+        const result = await extractCardNumberFromImage(photo.uri);
+        // Pass the extracted card data back to Profile
+        onCardScanned(result);
+        onClose();
+      }
+    } catch (err) {
+      console.error("Error taking picture:", err);
+      Alert.alert("Error", "Could not take picture. Please try again.");
+    }
+  };
+
+  const toggleFacing = () => {
+    setFacing((prev) => (prev === "back" ? "front" : "back"));
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide">
+      <View style={styles.modalContainer}>
+        <CameraView
+          style={styles.camera}
+          type={facing}
+          ref={cameraRef}
+          ratio="16:9"
+        >
+          <View style={styles.shutterContainer}>
+            <Pressable onPress={takePicture}>
+              <View style={styles.shutterBtn}>
+                <View style={styles.shutterBtnInner} />
+              </View>
+            </Pressable>
+          </View>
+        </CameraView>
+        <Button title="Cancel" onPress={onClose} />
+      </View>
+    </Modal>
+  );
+}
+
+// -----------------------------------------------------
+// OCR Helper Function
+// This function reads the image as base64 and sends it to the Google Vision API.
+async function extractCardNumberFromImage(uri: string) {
+  console.log('🖼️ Image URI:', uri);
+  console.log('📦 Reading image as base64...');
+
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  console.log('📦 Base64 length:', base64.length);
+
+try {
+  const base64 = await FileSystem.readAsStringAsync(uri, {
+    encoding: FileSystem.EncodingType.Base64,
+  });
+
+  const apiKey = 'AIzaSyCLspCimLs5Xuwu3it0jDQX3wxNlWHL5eU'; // Replace with your actual key
+  const body = JSON.stringify({
+    requests: [
+      {
+        image: { content: base64 },
+        features: [{ type: 'TEXT_DETECTION' }],
+      },
+    ],
+  });
+
+  const response = await fetch(
+    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body,
+    }
+  );
+  
+  const result = await response.json();
+  const ocrText = result.responses?.[0]?.textAnnotations?.[0]?.description || '';
+  console.log('📨 Raw Google Vision API result:', JSON.stringify(result, null, 2));
+  // 👇 LOG the raw OCR text so we can debug
+  console.log('📃 OCR Raw Text:\n', ocrText);
+
+  // Try multiple RegEx formats
+  const cardNumberMatch = ocrText.match(/\b(?:\d[ -]*?){13,16}\b/);
+  const expiryMatch = ocrText.match(/\b(0[1-9]|1[0-2])\/?([0-9]{2})\b/);
+  console.log('cardNumberMatch', cardNumberMatch);
+  console.log('expiryMatch', expiryMatch);
+
+  return {
+    cardNumber: cardNumberMatch?.[0]?.replace(/[^\d]/g, '') || null,
+    expiry: expiryMatch ? `${expiryMatch[1]}/${expiryMatch[2]}` : null,
+  };
+} catch (err) {
+  console.error('❌ OCR Error:', err);
+  return { cardNumber: null, expiry: null };
+}
+}
+
+// -----------------------------------------------------
+// Profile Component
 export default function Profile() {
   const { user } = useAuth();
   const router = useRouter();
@@ -27,6 +160,7 @@ export default function Profile() {
   const [cardData, setCardData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [showCardScanner, setShowCardScanner] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -37,31 +171,25 @@ export default function Profile() {
     const fetchUserData = async () => {
       setIsLoading(true);
       try {
-        console.log("Attempting to fetch user data for Auth UID:", user.uid);
-
-        // Fetch user profile data using the Auth UID
+        console.log("Fetching user data for UID:", user.uid);
         const userDoc = await getDoc(doc(db, "users", user.uid));
 
         if (userDoc.exists()) {
           setUserData(userDoc.data());
           console.log("User data loaded:", userDoc.data());
         } else {
-          console.log("No user document found for Auth UID:", user.uid);
-
-          // If document doesn't exist, create it with basic info
+          console.log("No user document found for UID:", user.uid);
           const newUserData = {
             username: user.email?.split("@")[0] || "User",
             email: user.email,
             profilePicture: "",
             createdAt: new Date().toISOString(),
           };
-
-          // This is a fallback - would normally use setupUserProfile
           console.log("Creating new user document with basic data");
           setUserData(newUserData);
         }
 
-        // Fetch payment methods using the Auth UID
+        // Fetch payment methods (or use a default if not found)
         const paymentMethodsRef = collection(
           db,
           "users",
@@ -79,9 +207,7 @@ export default function Profile() {
           });
           console.log("Card data loaded:", cardDoc.data());
         } else {
-          console.log("No payment methods found for Auth UID:", user.uid);
-
-          // Create a default card object
+          console.log("No payment methods found for UID:", user.uid);
           setCardData({
             type: "Visa",
             lastFour: "1234",
@@ -117,13 +243,9 @@ export default function Profile() {
     }
   };
 
-  // Replace the entire handleChangeProfilePicture function in Profile.tsx
-
   const handleChangeProfilePicture = async () => {
     if (!user) return;
-
     try {
-      // Request permissions for image library
       const permissionResult =
         await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -135,59 +257,32 @@ export default function Profile() {
         return;
       }
 
-      // Launch image picker with optimized settings
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.6, // Lower quality to reduce size
-        maxWidth: 500, // Limit dimensions
+        quality: 0.6,
+        maxWidth: 500,
         maxHeight: 500,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setIsUploading(true);
-
         try {
           const imageUri = result.assets[0].uri;
           console.log("Selected image:", imageUri);
-
-          // Try to upload to Firebase
           const uploadResult = await uploadProfilePicture(user.uid, imageUri);
-
           if (uploadResult.success) {
-            // Update local state with new profile picture URL
             setUserData((prev) => ({
               ...prev,
               profilePicture: uploadResult.url,
             }));
             Alert.alert("Success", "Profile picture updated successfully!");
           } else {
-            // If upload fails, try one more time with even lower quality
-            try {
-              // Use a different approach - update with a default URL instead
-              await updateUserProfile(user.uid, {
-                profilePicture:
-                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
-              });
-
-              setUserData((prev) => ({
-                ...prev,
-                profilePicture:
-                  "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png",
-              }));
-
-              Alert.alert(
-                "Notice",
-                "Image upload failed. We've set a default profile picture instead."
-              );
-            } catch (error) {
-              console.error("Error setting default image:", error);
-              Alert.alert(
-                "Upload Failed",
-                "Could not update profile picture. Please try again later."
-              );
-            }
+            Alert.alert(
+              "Upload Failed",
+              "Could not update profile picture. Please try again later."
+            );
           }
         } catch (error) {
           console.error("Error during upload:", error);
@@ -206,23 +301,45 @@ export default function Profile() {
     }
   };
 
-  // Default values if data isn't loaded yet
+  // Callback when a card is scanned in the CardScannerModal.
+  const handleCardScanned = (result) => {
+    if (result.cardNumber) {
+      // Update the card data—here we update the "lastFour" and add an "expiry" field.
+      setCardData((prev) => ({
+        ...prev,
+        cardNumber: result.cardNumber,
+        lastFour: result.cardNumber.slice(-4),
+        expiry: result.expiry,
+      }));
+      Alert.alert("Card Scanned", "Card details updated successfully.");
+    } else {
+      Alert.alert(
+        "Scan Failed",
+        "Could not extract card details. Please try again."
+      );
+    }
+  };
+
+  // Default display values if data is not loaded yet.
   const displayName =
     userData?.username || user?.email?.split("@")[0] || "User";
   const avatarUrl =
     userData?.profilePicture ||
     "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png";
 
-  // Card display data with fallbacks
-  const cardType = cardData?.type || "Visa";
+  // Card display values
   const cardName = cardData?.name || displayName;
-  const cardNumber = cardData?.lastFour
+  const cardType = cardData?.type || "Visa";
+  // If a full card number was scanned, display that; otherwise show a default masked number.
+  const cardNumber = cardData?.cardNumber
+    ? cardData.cardNumber
+    : cardData?.lastFour
     ? `**** **** **** ${cardData.lastFour}`
     : "**** **** **** 1234";
   const cardBalance =
     cardData?.balance !== undefined
       ? `$${cardData.balance.toFixed(2)}`
-      : "$3,469.52"; // Default demo value
+      : "$3,469.52"; // Demo default value
 
   if (isLoading) {
     return (
@@ -237,8 +354,6 @@ export default function Profile() {
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollView}>
         <View style={styles.contentContainer}>
-          {/* <Text style={styles.headerTitle}>Profile</Text> */}
-
           {/* Profile Image and Name */}
           <View style={styles.profileContainer}>
             <TouchableOpacity
@@ -250,10 +365,7 @@ export default function Profile() {
                 <ActivityIndicator size="large" color="#4C38CD" />
               ) : (
                 <>
-                  <Image
-                    source={{ uri: avatarUrl }}
-                    style={styles.profileImage}
-                  />
+                  <Image source={{ uri: avatarUrl }} style={styles.profileImage} />
                   <View style={styles.editIconContainer}>
                     <Feather name="edit-2" size={16} color="white" />
                   </View>
@@ -264,7 +376,7 @@ export default function Profile() {
             <Text style={styles.profileEmail}>{user?.email}</Text>
           </View>
 
-          {/* Card Section with improved design */}
+          {/* Card Section */}
           <View style={styles.cardContainer}>
             <View style={styles.cardHeader}>
               <Text style={styles.cardHeaderTitle}>Your Card</Text>
@@ -272,9 +384,14 @@ export default function Profile() {
             <View style={styles.cardContent}>
               <View style={styles.cardLeftSection}>
                 <Text style={styles.cardName}>{cardName}</Text>
-                <Text style={styles.cardType}>{cardType}</Text>
-                <Text style={styles.cardNumber}>{cardNumber}</Text>
-                <Text style={styles.cardBalance}>{cardBalance}</Text>
+                <Text style={styles.cardNumber}>
+                  {cardNumber}
+                </Text>
+                {cardData?.expiry && (
+                  <Text style={styles.cardExpiry}>
+                    Expiry: {cardData.expiry}
+                  </Text>
+                )}
               </View>
               <View style={styles.cardRightSection}>
                 <Text style={styles.visaText}>VISA</Text>
@@ -282,7 +399,7 @@ export default function Profile() {
             </View>
           </View>
 
-          {/* Settings Options with improved styling */}
+          {/* Settings Options */}
           <View style={styles.optionsContainer}>
             <Text style={styles.sectionTitle}>Settings</Text>
 
@@ -302,12 +419,7 @@ export default function Profile() {
 
             <TouchableOpacity
               style={styles.optionItem}
-              onPress={() =>
-                Alert.alert(
-                  "Coming Soon",
-                  "Payment methods management will be available in the next update."
-                )
-              }
+              onPress={() => setShowCardScanner(true)}
             >
               <Feather
                 name="credit-card"
@@ -315,7 +427,7 @@ export default function Profile() {
                 color="#666"
                 style={styles.optionIcon}
               />
-              <Text style={styles.optionText}>Payment Methods</Text>
+              <Text style={styles.optionText}>Add a Card</Text>
               <Feather name="chevron-right" size={22} color="#CCCCCC" />
             </TouchableOpacity>
 
@@ -339,22 +451,25 @@ export default function Profile() {
             </TouchableOpacity>
           </View>
 
-          {/* Logout button */}
+          {/* Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Feather
-              name="log-out"
-              size={20}
-              color="#FF4444"
-              style={styles.logoutIcon}
-            />
+            <Feather name="log-out" size={20} color="#FF4444" style={styles.logoutIcon} />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
+      {/* Include the CardScannerModal */}
+      <CardScannerModal
+        visible={showCardScanner}
+        onClose={() => setShowCardScanner(false)}
+        onCardScanned={handleCardScanned}
+      />
     </SafeAreaView>
   );
 }
 
+// -----------------------------------------------------
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -376,12 +491,6 @@ const styles = StyleSheet.create({
   },
   contentContainer: {
     padding: 24,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 30,
   },
   profileContainer: {
     alignItems: "center",
@@ -405,8 +514,8 @@ const styles = StyleSheet.create({
   },
   editIconContainer: {
     position: "absolute",
-    bottom: 0,
-    right: 0,
+    bottom: 15,
+    right: 15,
     backgroundColor: "#4C38CD",
     width: 36,
     height: 36,
@@ -415,8 +524,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 3,
     borderColor: "white",
-    bottom: 15,
-    right: 15,
     elevation: 3,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
@@ -462,7 +569,7 @@ const styles = StyleSheet.create({
     height: 180,
   },
   cardLeftSection: {
-    flex: 6,
+    flex: 10,
     padding: 20,
     justifyContent: "center",
     backgroundColor: "#2E1886",
@@ -490,6 +597,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
     letterSpacing: 1,
+  },
+  cardExpiry: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 8,
   },
   cardBalance: {
     color: "white",
@@ -524,23 +636,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     flex: 1,
   },
-  debugContainer: {
-    marginTop: 20,
-    marginBottom: 10,
-    padding: 10,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 8,
-  },
-  debugTitle: {
-    fontSize: 14,
-    fontWeight: "bold",
-    marginBottom: 5,
-    color: "#666",
-  },
-  debugText: {
-    fontSize: 12,
-    color: "#666",
-  },
   logoutButton: {
     backgroundColor: "#FFEEEE",
     borderRadius: 12,
@@ -558,4 +653,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
   },
+  // Styles for the CardScannerModal and Camera view
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "black",
+  },
+  camera: {
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  shutterContainer: {
+    position: "absolute",
+    bottom: 44,
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    paddingLeft: 160,
+    paddingHorizontal: 30,
+  },
+  shutterBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 5,
+    borderColor: "white",
+    width: 85,
+    height: 85,
+    borderRadius: 45,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shutterBtnInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    backgroundColor: "white",
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+  },
 });
+
