@@ -348,35 +348,115 @@ export default function Statistics() {
         switch (view) {
             case "Daily":
                 return budgets.map((budget) => {
-                    return {
-                        ...budget,
-                        amount: budget.amount / 30,
-                        limit: budget.limit / 30,
-                    };
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 7,
+                            limit: budget.limit / 7,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 30,
+                            limit: budget.limit / 30,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount / 365,
+                            limit: budget.limit / 365,
+                        };
+                    }
                 });
             case "Weekly":
                 return budgets.map((budget) => {
-                    return {
-                        ...budget,
-                        amount: budget.amount / 7,
-                        limit: budget.limit / 7,
-                    };
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount *7,
+                            limit: budget.limit *7,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 4,
+                            limit: budget.limit / 4,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount / 52,
+                            limit: budget.limit / 52,
+                        };
+                    }
                 });
             case "Monthly":
                 return budgets.map((budget) => {
-                    return {
-                        ...budget,
-                        amount: budget.amount,
-                        limit: budget.limit,
-                    };
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount/30,
+                            limit: budget.limit/30
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 4,
+                            limit: budget.limit / 4,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount *12,
+                            limit: budget.limit *12,
+                        };
+                    }
                 });
             case "Yearly":
                 return budgets.map((budget) => {
-                    return {
-                        ...budget,
-                        amount: budget.amount * 12,
-                        limit: budget.limit * 12,
-                    };
+                    if (budget.frequency === "Daily") {
+                        return {
+                            ...budget,
+                            amount: budget.amount/365,
+                            limit: budget.limit/365,
+                        };
+                    } else if (budget.frequency === "Weekly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 52,
+                            limit: budget.limit / 52,
+                        };
+                    } else if (budget.frequency === "Monthly") {
+                        return {
+                            ...budget,
+                            amount: budget.amount / 12,
+                            limit: budget.limit / 12,
+                        };
+                    } else { // Yearly budget
+                        return {
+                            ...budget,
+                            amount: budget.amount,
+                            limit: budget.limit,
+                        };
+                    }
                 });
             default:
                 return budgets;
