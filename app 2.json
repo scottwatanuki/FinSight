@@ -10,10 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.anonymous.FinSight",
-      "infoPlist": {
-        "NSCameraUsageDescription": "This app uses the camera to scan credit cards."
-      }
+      "bundleIdentifier": "com.anonymous.FinSight"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,14 +24,6 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      [
-        "expo-camera",
-      {
-        "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera",
-        "microphonePermission": "Allow $(PRODUCT_NAME) to access your microphone",
-        "recordAudioAndroid": true
-      }
-    ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -44,8 +33,7 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ],
-      "dyscan-expo-plugin"
+      ]
     ],
     "experiments": {
       "typedRoutes": true
