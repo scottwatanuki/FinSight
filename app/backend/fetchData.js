@@ -299,22 +299,21 @@ async function fetchSpendingDataByPeriod(userID, period) {
         let modifiedBudget = { ...budget };
 
         // Adjust budget amounts based on the period
-        if (period === "Daily") {
-            // Scale down monthly budget to daily
-            Object.keys(modifiedBudget).forEach((key) => {
-                modifiedBudget[key] = modifiedBudget[key] / 30;
-            });
-        } else if (period === "Weekly") {
-            // Scale down monthly budget to weekly
-            Object.keys(modifiedBudget).forEach((key) => {
-                modifiedBudget[key] = modifiedBudget[key] / 4;
-            });
-        } else if (period === "Yearly") {
-            // Scale up monthly budget to yearly
-            Object.keys(modifiedBudget).forEach((key) => {
-                modifiedBudget[key] = modifiedBudget[key] * 12;
-            });
-        }
+        Object.keys(modifiedBudget).forEach((key) => {
+            const originalAmount = parseFloat(modifiedBudget[key].amount);
+            let scaledAmount = originalAmount;
+
+            if (period === "Daily") {
+                scaledAmount = originalAmount / 30;
+            } else if (period === "Weekly") {
+                scaledAmount = originalAmount / 4;
+            } else if (period === "Yearly") {
+                scaledAmount = originalAmount * 12;
+            }
+
+            // Store scaled number as raw amount
+            modifiedBudget[key] = scaledAmount;
+        });
         // Monthly remains as is
 
         let totalSpent = 0;
@@ -331,6 +330,9 @@ async function fetchSpendingDataByPeriod(userID, period) {
         Object.values(modifiedBudget || {}).forEach((amount) => {
             totalBudget += amount;
         });
+
+        console.log("MODIFIED BUDGET:");
+        console.log(modifiedBudget);
 
         // Ensure we have data for all budget categories, even if there are no transactions
         const categories = Object.keys(modifiedBudget || {}).map(
@@ -408,7 +410,7 @@ async function fetchGoalByID(userID, goalID) {
 }
 
 // Call function for testing
-// fetchTotalSpendingPerCategory("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
+// fetchSpendingDataByPeriod("7bx47gI4c5WuiKj8RsFEbQfUmEm1");
 
 module.exports = {
     fetchUserBudgetKeys,
