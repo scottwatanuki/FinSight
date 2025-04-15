@@ -1,20 +1,26 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+} from "react-native";
+import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
 
 const SpendingBarChart = ({
   data,
   height = 200,
   barWidth = 30,
-  barColor = "#6C63FF",
-  budgetLineColor = "#ddd",
-  overBudgetColor = "#FF5757",
+  spentBarColor = "#6C63FF",
+  budgetBarColor = "#ddd",
 }) => {
-  // Find the maximum value for scaling
+  const [selectedBarIndex, setSelectedBarIndex] = useState(null); // Track selected bar
+
   const maxValue = Math.max(
     ...data.map((item) => Math.max(item.spent, item.budget))
   );
 
-  // Calculate the y-axis labels based on the max value
   const yLabels = ["0"];
   const steps = 3;
   for (let i = 1; i <= steps; i++) {
@@ -24,88 +30,101 @@ const SpendingBarChart = ({
     );
   }
 
+  const handleScreenPress = () => {
+    setSelectedBarIndex(null);
+  };
+
+  const iconDict: { [key: string]: IconSymbolName } = {
+    entertainment: "film.fill",
+    travel: "airplane",
+    bills: "calendar",
+    groceries: "cart.fill",
+    dining: "fork.knife",
+    subscriptions: "newspaper.fill",
+    transportation: "car.fill",
+    recreational: "gamecontroller.fill",
+    shopping: "bag.fill",
+    health: "heart.fill",
+    misc: "ellipsis",
+  };
+
   return (
-    <View style={styles.container}>
-      {/* Y-Axis Labels */}
-      <View style={styles.yAxis}>
-        {yLabels.map((label, index) => (
-          <Text key={index} style={styles.yLabel}>
-            {label}
-          </Text>
-        ))}
-      </View>
+    <TouchableWithoutFeedback onPress={handleScreenPress}>
+      <View style={styles.container}>
+        {/* Y-Axis Labels */}
+        <View style={styles.yAxis}>
+          {yLabels.map((label, index) => (
+            <Text key={index} style={styles.yLabel}>
+              {label}
+            </Text>
+          ))}
+        </View>
 
-      {/* Chart Area */}
-      <View style={[styles.chartArea, { height }]}>
-        {data.map((item, index) => (
-          <View key={index} style={styles.barGroup}>
-            <View style={[styles.barColumn, { height: "100%" }]}>
-              {/* Over budget indicator */}
-              {item.spent > item.budget && (
-                <View style={styles.overBudgetIndicator}>
-                  <View
-                    style={[
-                      styles.overBudgetDot,
-                      { backgroundColor: overBudgetColor },
-                    ]}
-                  ></View>
-                </View>
-              )}
-
-              {/* The actual bar */}
-              <View
-                style={[
-                  styles.bar,
-                  {
-                    height: `${(item.spent / maxValue) * 100}%`,
-                    width: barWidth,
-                    backgroundColor: item.color || barColor,
-                  },
-                ]}
-              />
-
-              {/* Budget line indicator */}
-              <View
-                style={[
-                  styles.budgetLine,
-                  {
-                    bottom: `${(item.budget / maxValue) * 100}%`,
-                    backgroundColor: budgetLineColor,
-                  },
-                ]}
-              >
+        {/* Chart Area */}
+        <View style={[styles.chartArea, { height }]}>
+          {data.map((item, index) => (
+            <TouchableOpacity
+              key={index}
+              style={styles.barGroup}
+              onPress={() =>
+                setSelectedBarIndex(selectedBarIndex === index ? null : index)
+              }
+              activeOpacity={0.8}
+            >
+              <View style={[styles.barColumn, { height: "100%" }]}>
+                {/* Budget Bar */}
                 <View
                   style={[
-                    styles.budgetDot,
-                    { backgroundColor: overBudgetColor },
+                    styles.budgetBar,
+                    {
+                      height: `${(item.budget / maxValue) * 100}%`,
+                      width: barWidth,
+                      backgroundColor: budgetBarColor,
+                    },
                   ]}
-                ></View>
+                />
+
+                {/* Spent Bar */}
+                <View
+                  style={[
+                    styles.spentBar,
+                    {
+                      height: `${(item.spent / maxValue) * 100}%`,
+                      width: barWidth,
+                      backgroundColor: spentBarColor,
+                      position: "absolute",
+                      bottom: 0,
+                    },
+                  ]}
+                />
+
+                {/* Tooltip for the bar */}
+                {selectedBarIndex === index && (
+                  <View style={styles.tooltip}>
+                    <Text style={styles.tooltipText}>
+                      {item.name}: ${item.spent.toLocaleString()} 
+                    </Text>
+                    <Text style={styles.tooltipText}>
+                      budget: ${item.budget.toLocaleString()}
+                    </Text>
+                  </View>
+                )}
               </View>
-              categories = [
-                  "entertainment",
-                  "travel",
-                  "bills",
-                  "groceries",
-                  "dining",
-                  "subscriptions",
-                  "transportation",
-                  "recreational",
-                  "shopping",
-                  "health",
-                  "misc",
-              ];
-              {/* Category name label */}
-              
-            </View>
-            <Text style={styles.barLabel}>{item.name.substring(0,3)}</Text>
-          </View>
-        ))}
+
+              {/* Icon for the category */}
+              <IconSymbol
+                name={iconDict[item.name] || "questionmark.circle"}
+                size={24}
+                color="#666"
+                style={styles.barLabelIcon}
+              />
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
-    </View>
+    </TouchableWithoutFeedback>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -117,6 +136,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "flex-start",
     paddingRight: 5,
+    paddingBottom: 25,
   },
   yLabel: {
     fontSize: 11,
@@ -138,48 +158,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     position: "relative",
   },
-  bar: {
-    backgroundColor: "#6C63FF",
+  budgetBar: {
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
-    position: "relative",
-  },
-  budgetLine: {
     position: "absolute",
-    width: 40,
-    height: 1,
+    bottom: 0,
   },
-  budgetDot: {
+  spentBar: {
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+  },
+  barLabelIcon: {
+    marginTop: 8,
+  },
+  tooltip: {
     position: "absolute",
-    right: -4,
-    top: -4,
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "white",
+    bottom: "100%",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    borderRadius: 5,
+    padding: 8,
+    marginBottom: 5,
+    width: 120,
+    alignSelf: "center",
+    zIndex: 10,
   },
-  overBudgetIndicator: {
-    position: "absolute",
-    top: -15,
-    zIndex: 2,
-    width: 20,
-    height: 20,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  // overBudgetDot: {
-  //   width: 10,
-  //   height: 10,
-  //   borderRadius: 5,
-  //   borderWidth: 1,
-  //   borderColor: "white",
-  // },
-  barLabel: {
-    marginTop: 0,
-
+  tooltipText: {
+    color: "white",
     fontSize: 12,
-    color: "#333",
+    textAlign: "center",
+    fontWeight: "bold",
   },
 });
 

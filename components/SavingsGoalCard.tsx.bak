@@ -1,17 +1,37 @@
-// app/components/SavingsGoalCard.jsx
 import React from "react";
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { useAuth } from "../app/context/AuthContext";
+import { updateGoal } from "../app/backend/pushData";
 
-const SavingsGoalCard = ({
+interface SavingsGoalCardProps {
+  title?: string;
+  currentAmount?: number;
+  targetAmount?: number;
+  deadline?: string;
+  onPress?: () => void;
+  goalId?: string;
+  isCompleted?: boolean;
+}
+
+const SavingsGoalCard: React.FC<SavingsGoalCardProps> = ({
   title = "New Car",
   currentAmount = 3500,
   targetAmount = 15000,
   deadline = "Dec 2023",
   onPress,
+  goalId,
+  isCompleted = false,
 }) => {
+  const { user } = useAuth();
+
   // Calculate progress percentage
   const progressPercentage = (currentAmount / targetAmount) * 100;
+  // Cap the percentage at 100% for display purposes
+  const displayPercentage = Math.min(progressPercentage, 100);
+
+  // Determine if the goal is actually complete based on amounts, not just the flag
+  const isActuallyComplete = currentAmount >= targetAmount;
 
   // Calculate formatted amounts
   const formattedCurrent = currentAmount.toLocaleString("en-US", {
@@ -27,6 +47,21 @@ const SavingsGoalCard = ({
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   });
+
+  // Handle adding funds to the goal
+  const handleAddFunds = async () => {
+    if (!user || !goalId) return;
+
+    try {
+      // For now, we'll add $100 each time the button is pressed
+      // In a real app, you would show a modal to let the user input the amount
+      const amountToAdd = 100;
+      await updateGoal(user.uid, goalId, amountToAdd);
+      console.log(`Added $${amountToAdd} to goal ${goalId}`);
+    } catch (error) {
+      console.error("Error adding funds to goal:", error);
+    }
+  };
 
   return (
     <TouchableOpacity style={styles.container} onPress={onPress}>
@@ -46,7 +81,7 @@ const SavingsGoalCard = ({
       <View style={styles.progressBarContainer}>
         <View style={styles.progressBarBackground}>
           <View
-            style={[styles.progressBar, { width: `${progressPercentage}%` }]}
+            style={[styles.progressBar, { width: `${displayPercentage}%` }]}
           />
         </View>
         <Text style={styles.progressPercentage}>
@@ -55,10 +90,20 @@ const SavingsGoalCard = ({
       </View>
 
       <View style={styles.actionContainer}>
-        <TouchableOpacity style={styles.addFundsButton}>
-          <Feather name="plus" size={16} color="white" />
-          <Text style={styles.addFundsText}>Add Funds</Text>
-        </TouchableOpacity>
+        {isActuallyComplete ? (
+          <View style={styles.completedContainer}>
+            <Feather name="check-circle" size={16} color="#4CAF50" />
+            <Text style={styles.completedText}>Goal Completed!</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={styles.addFundsButton}
+            onPress={handleAddFunds}
+          >
+            <Feather name="plus" size={16} color="white" />
+            <Text style={styles.addFundsText}>Add Funds</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -147,6 +192,19 @@ const styles = StyleSheet.create({
   },
   addFundsText: {
     color: "white",
+    fontWeight: "600",
+    marginLeft: 5,
+  },
+  completedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#E8F5E9",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  completedText: {
+    color: "#4CAF50",
     fontWeight: "600",
     marginLeft: 5,
   },

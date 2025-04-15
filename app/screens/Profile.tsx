@@ -23,12 +23,14 @@ import * as ImagePicker from "expo-image-picker";
 import { uploadProfilePicture } from "../services/userProfile";
 import * as FileSystem from "expo-file-system";
 import {
+
     Camera,
     CameraType,
     CameraView,
     useCameraPermissions,
 } from "expo-camera";
 import { setDoc } from "firebase/firestore";
+
 
 // -----------------------------------------------------
 // CardScannerModal
@@ -38,6 +40,7 @@ function CardScannerModal({ visible, onClose, onCardScanned }) {
     const [permission, requestPermission] = useCameraPermissions();
     const cameraRef = useRef(null);
     const [facing, setFacing] = useState<CameraType>("back");
+
 
     // If the permission hasn’t been determined yet
     if (!permission) {
@@ -80,6 +83,7 @@ function CardScannerModal({ visible, onClose, onCardScanned }) {
     const toggleFacing = () => {
         setFacing((prev) => (prev === "back" ? "front" : "back"));
     };
+
 
     return (
         <Modal visible={visible} animationType="slide">
@@ -568,231 +572,387 @@ export default function Profile() {
             />
         </SafeAreaView>
     );
+
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollView}>
+        <View style={styles.contentContainer}>
+          {/* Profile Image and Name */}
+          <View style={styles.profileContainer}>
+            <TouchableOpacity
+              style={styles.profileImageContainer}
+              onPress={handleChangeProfilePicture}
+              disabled={isUploading}
+            >
+              {isUploading ? (
+                <ActivityIndicator size="large" color="#4C38CD" />
+              ) : (
+                <>
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.profileImage}
+                  />
+                  <View style={styles.editIconContainer}>
+                    <Feather name="edit-2" size={16} color="white" />
+                  </View>
+                </>
+              )}
+            </TouchableOpacity>
+            <Text style={styles.profileName}>{displayName}</Text>
+            <Text style={styles.profileEmail}>{user?.email}</Text>
+          </View>
+
+          {/* Card Section */}
+          <View style={styles.cardContainer}>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardHeaderTitle}>Your Card</Text>
+            </View>
+            <View style={styles.cardContent}>
+              <View style={styles.cardLeftSection}>
+                <Text style={styles.cardName}>{cardName}</Text>
+                <Text style={styles.cardNumber}>{cardNumber}</Text>
+                {cardData?.expiry && (
+                  <Text style={styles.cardExpiry}>
+                    Expiry: {cardData.expiry}
+                  </Text>
+                )}
+              </View>
+              <View style={styles.cardRightSection}>
+                <Text style={styles.visaText}>VISA</Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Settings Options */}
+          <View style={styles.optionsContainer}>
+            <Text style={styles.sectionTitle}>Settings</Text>
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => router.push("/premium")}
+            >
+              <Feather
+                name="star"
+                size={22}
+                color="#FFC107"
+                style={styles.optionIcon}
+              />
+              <Text style={styles.optionText}>Premium</Text>
+              <View style={styles.newFeatureBadge}>
+                <Text style={styles.newFeatureText}>NEW</Text>
+              </View>
+              <Feather name="chevron-right" size={22} color="#CCCCCC" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => router.push("/change-password")}
+            >
+              <Feather
+                name="lock"
+                size={22}
+                color="#666"
+                style={styles.optionIcon}
+              />
+              <Text style={styles.optionText}>Password</Text>
+              <Feather name="chevron-right" size={22} color="#CCCCCC" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => setShowCardScanner(true)}
+            >
+              <Feather
+                name="credit-card"
+                size={22}
+                color="#666"
+                style={styles.optionIcon}
+              />
+              <Text style={styles.optionText}>Add a Card</Text>
+              <Feather name="chevron-right" size={22} color="#CCCCCC" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() =>
+                Alert.alert(
+                  "Coming Soon",
+                  "Notification preferences will be available in the next update."
+                )
+              }
+            >
+              <Feather
+                name="bell"
+                size={22}
+                color="#666"
+                style={styles.optionIcon}
+              />
+              <Text style={styles.optionText}>Notifications</Text>
+              <Feather name="chevron-right" size={22} color="#CCCCCC" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Logout Button */}
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Feather
+              name="log-out"
+              size={20}
+              color="#FF4444"
+              style={styles.logoutIcon}
+            />
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+      {/* Include the CardScannerModal */}
+      <CardScannerModal
+        visible={showCardScanner}
+        onClose={() => setShowCardScanner(false)}
+        onCardScanned={handleCardScanned}
+      />
+    </SafeAreaView>
+  );
+
 }
 
 // -----------------------------------------------------
 // Styles
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: "white",
-    },
-    loadingContainer: {
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-        backgroundColor: "white",
-    },
-    loadingText: {
-        marginTop: 12,
-        fontSize: 16,
-        color: "#666",
-    },
-    scrollView: {
-        paddingBottom: 30,
-    },
-    contentContainer: {
-        padding: 24,
-    },
-    profileContainer: {
-        alignItems: "center",
-        marginBottom: 32,
-    },
-    profileImageContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        backgroundColor: "#F5F5F5",
-        justifyContent: "center",
-        alignItems: "center",
-        marginBottom: 16,
-        overflow: "hidden",
-        position: "relative",
-    },
-    profileImage: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-    },
-    editIconContainer: {
-        position: "absolute",
-        bottom: 15,
-        right: 15,
-        backgroundColor: "#4C38CD",
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        justifyContent: "center",
-        alignItems: "center",
-        borderWidth: 3,
-        borderColor: "white",
-        elevation: 3,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.2,
-        shadowRadius: 2,
-    },
-    profileName: {
-        fontSize: 22,
-        fontWeight: "bold",
-        marginBottom: 4,
-    },
-    profileEmail: {
-        fontSize: 16,
-        color: "#666",
-    },
-    cardContainer: {
-        backgroundColor: "white",
-        borderRadius: 20,
-        overflow: "hidden",
-        marginBottom: 36,
-        borderWidth: 1,
-        borderColor: "#F0F0F0",
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 10,
-        elevation: 5,
-    },
-    cardHeader: {
-        backgroundColor: "#F8F8F8",
-        paddingVertical: 12,
-        paddingHorizontal: 20,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
-    },
-    cardHeaderTitle: {
-        fontSize: 16,
-        fontWeight: "600",
-        color: "#666",
-    },
-    cardContent: {
-        flexDirection: "row",
-        height: 180,
-    },
-    cardLeftSection: {
-        flex: 10,
-        padding: 20,
-        justifyContent: "center",
-        backgroundColor: "#2E1886",
-    },
-    cardRightSection: {
-        flex: 4,
-        backgroundColor: "#4C66E0",
-        justifyContent: "flex-end",
-        alignItems: "flex-end",
-        padding: 20,
-    },
-    cardName: {
-        color: "white",
-        fontSize: 18,
-        fontWeight: "bold",
-        marginBottom: 4,
-    },
-    cardType: {
-        color: "rgba(255, 255, 255, 0.8)",
-        fontSize: 14,
-        marginBottom: 20,
-    },
-    cardNumber: {
-        color: "white",
-        fontSize: 16,
-        marginBottom: 8,
-        letterSpacing: 1,
-    },
-    cardExpiry: {
-        color: "white",
-        fontSize: 16,
-        marginBottom: 8,
-    },
-    cardBalance: {
-        color: "white",
-        fontSize: 24,
-        fontWeight: "bold",
-    },
-    visaText: {
-        color: "white",
-        fontSize: 22,
-        fontWeight: "bold",
-    },
-    sectionTitle: {
-        fontSize: 20,
-        fontWeight: "600",
-        marginBottom: 16,
-    },
-    optionsContainer: {
-        marginBottom: 20,
-    },
-    optionItem: {
-        flexDirection: "row",
-        justifyContent: "space-between",
-        alignItems: "center",
-        paddingVertical: 16,
-        borderBottomWidth: 1,
-        borderBottomColor: "#F0F0F0",
-    },
-    optionIcon: {
-        marginRight: 12,
-    },
-    optionText: {
-        fontSize: 16,
-        flex: 1,
-    },
-    logoutButton: {
-        backgroundColor: "#FFEEEE",
-        borderRadius: 12,
-        padding: 16,
-        marginTop: 24,
-        alignItems: "center",
-        flexDirection: "row",
-        justifyContent: "center",
-    },
-    logoutIcon: {
-        marginRight: 8,
-    },
-    logoutText: {
-        color: "#FF4444",
-        fontSize: 16,
-        fontWeight: "bold",
-    },
-    // Styles for the CardScannerModal and Camera view
-    modalContainer: {
-        flex: 1,
-        backgroundColor: "black",
-    },
-    camera: {
-        flex: 1,
-        justifyContent: "flex-end",
-        alignItems: "center",
-    },
-    shutterContainer: {
-        position: "absolute",
-        bottom: 44,
-        width: "100%",
-        alignItems: "center",
-        flexDirection: "row",
-        paddingLeft: 160,
-        paddingHorizontal: 30,
-    },
-    shutterBtn: {
-        backgroundColor: "transparent",
-        borderWidth: 5,
-        borderColor: "white",
-        width: 85,
-        height: 85,
-        borderRadius: 45,
-        alignItems: "center",
-        justifyContent: "center",
-    },
-    shutterBtnInner: {
-        width: 70,
-        height: 70,
-        borderRadius: 50,
-        backgroundColor: "white",
-    },
-    centered: {
-        justifyContent: "center",
-        alignItems: "center",
-        flex: 1,
-    },
+  container: {
+    flex: 1,
+    backgroundColor: "white",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#666",
+  },
+  scrollView: {
+    paddingBottom: 30,
+  },
+  contentContainer: {
+    padding: 24,
+  },
+  profileContainer: {
+    alignItems: "center",
+    marginBottom: 32,
+  },
+  profileImageContainer: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: "#F5F5F5",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  profileImage: {
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  editIconContainer: {
+    position: "absolute",
+    bottom: 15,
+    right: 15,
+    backgroundColor: "#4C38CD",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 3,
+    borderColor: "white",
+    elevation: 3,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: "#666",
+  },
+  cardContainer: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 36,
+    borderWidth: 1,
+    borderColor: "#F0F0F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 5,
+  },
+  cardHeader: {
+    backgroundColor: "#F8F8F8",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  cardHeaderTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#666",
+  },
+  cardContent: {
+    flexDirection: "row",
+    height: 180,
+  },
+  cardLeftSection: {
+    flex: 10,
+    padding: 20,
+    justifyContent: "center",
+    backgroundColor: "#2E1886",
+  },
+  cardRightSection: {
+    flex: 4,
+    backgroundColor: "#4C66E0",
+    justifyContent: "flex-end",
+    alignItems: "flex-end",
+    padding: 20,
+  },
+  cardName: {
+    color: "white",
+    fontSize: 18,
+    fontWeight: "bold",
+    marginBottom: 4,
+  },
+  cardType: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 14,
+    marginBottom: 20,
+  },
+  cardNumber: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 8,
+    letterSpacing: 1,
+  },
+  cardExpiry: {
+    color: "white",
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  cardBalance: {
+    color: "white",
+    fontSize: 24,
+    fontWeight: "bold",
+  },
+  visaText: {
+    color: "white",
+    fontSize: 22,
+    fontWeight: "bold",
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "600",
+    marginBottom: 16,
+  },
+  optionsContainer: {
+    marginBottom: 20,
+  },
+  optionItem: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
+  optionIcon: {
+    marginRight: 12,
+  },
+  optionText: {
+    fontSize: 16,
+    flex: 1,
+  },
+  logoutButton: {
+    backgroundColor: "#FFEEEE",
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 24,
+    alignItems: "center",
+    flexDirection: "row",
+    justifyContent: "center",
+  },
+  logoutIcon: {
+    marginRight: 8,
+  },
+  logoutText: {
+    color: "#FF4444",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  // Styles for the CardScannerModal and Camera view
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "black",
+  },
+  camera: {
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "center",
+  },
+  shutterContainer: {
+    position: "absolute",
+    bottom: 44,
+    width: "100%",
+    alignItems: "center",
+    flexDirection: "row",
+    paddingLeft: 160,
+    paddingHorizontal: 30,
+  },
+  shutterBtn: {
+    backgroundColor: "transparent",
+    borderWidth: 5,
+    borderColor: "white",
+    width: 85,
+    height: 85,
+    borderRadius: 45,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  shutterBtnInner: {
+    width: 70,
+    height: 70,
+    borderRadius: 50,
+    backgroundColor: "white",
+  },
+  centered: {
+    justifyContent: "center",
+    alignItems: "center",
+    flex: 1,
+  },
+  newFeatureBadge: {
+    backgroundColor: "#4C38CD",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  newFeatureText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });
+
