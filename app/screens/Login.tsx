@@ -19,7 +19,48 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
+  const [hasSavedCredentials, setHasSavedCredentials] = useState(false);
   const router = useRouter();
+
+  // Load saved credentials when the component mounts
+  useEffect(() => {
+    const loadSavedCredentials = async () => {
+      try {
+        const savedCredentials = await AsyncStorage.getItem(
+          "@savedCredentials"
+        );
+        if (savedCredentials) {
+          const { email, password, rememberMe } = JSON.parse(savedCredentials);
+          if (rememberMe) {
+            setEmail(email || "");
+            setPassword(password || "");
+            setRememberMe(true);
+            setHasSavedCredentials(true);
+          }
+        }
+      } catch (error) {
+        console.error("Error loading saved credentials:", error);
+      }
+    };
+
+    loadSavedCredentials();
+  }, []);
+
+  const clearSavedCredentials = async () => {
+    try {
+      await AsyncStorage.removeItem("@savedCredentials");
+      setHasSavedCredentials(false);
+      setRememberMe(false);
+      // Optionally clear the input fields
+      setEmail("");
+      setPassword("");
+      Alert.alert("Success", "Saved credentials have been cleared");
+    } catch (error) {
+      console.error("Error clearing saved credentials:", error);
+      Alert.alert("Error", "Failed to clear saved credentials");
+    }
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -32,6 +73,30 @@ export default function Login() {
       const result = await loginUser(email, password);
 
       if (result.success) {
+        // Save credentials if rememberMe is checked
+        if (rememberMe) {
+          try {
+            const credentials = {
+              email,
+              password,
+              rememberMe,
+            };
+            await AsyncStorage.setItem(
+              "@savedCredentials",
+              JSON.stringify(credentials)
+            );
+          } catch (error) {
+            console.error("Error saving credentials:", error);
+          }
+        } else {
+          // If rememberMe is unchecked, clear any saved credentials
+          try {
+            await AsyncStorage.removeItem("@savedCredentials");
+          } catch (error) {
+            console.error("Error removing saved credentials:", error);
+          }
+        }
+
         // Initialize user data after successful login
         try {
           await userInitialization.initializeUserIfNeeded(
@@ -105,6 +170,30 @@ export default function Login() {
           />
         </View>
 
+        <View style={styles.credentialsOptionsContainer}>
+          <TouchableOpacity
+            style={styles.rememberMeContainer}
+            onPress={() => setRememberMe(!rememberMe)}
+            disabled={loading}
+          >
+            <View
+              style={[styles.checkbox, rememberMe && styles.checkboxChecked]}
+            >
+              {rememberMe && <Text style={styles.checkmark}>✓</Text>}
+            </View>
+            <Text style={styles.rememberMeText}>Remember me</Text>
+          </TouchableOpacity>
+
+          {hasSavedCredentials && (
+            <TouchableOpacity
+              onPress={clearSavedCredentials}
+              disabled={loading}
+            >
+              <Text style={styles.forgotText}>Clear saved</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
         <TouchableOpacity
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleLogin}
@@ -161,6 +250,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#333",
   },
+  rememberMeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  credentialsOptionsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 1,
+    borderColor: "#4C38CD",
+    borderRadius: 4,
+    marginRight: 8,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkboxChecked: {
+    backgroundColor: "#4C38CD",
+  },
+  checkmark: {
+    color: "white",
+    fontSize: 14,
+  },
+  rememberMeText: {
+    fontSize: 16,
+    color: "#666",
+  },
   button: {
     backgroundColor: "#4C38CD",
     borderRadius: 8,
@@ -188,6 +308,11 @@ const styles = StyleSheet.create({
     color: "#666",
   },
   footerLink: {
+    fontSize: 16,
+    color: "#4C38CD",
+    fontWeight: "500",
+  },
+  forgotText: {
     fontSize: 16,
     color: "#4C38CD",
     fontWeight: "500",

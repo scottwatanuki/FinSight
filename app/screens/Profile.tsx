@@ -22,7 +22,12 @@ import { db } from "../../firebase";
 import * as ImagePicker from "expo-image-picker";
 import { uploadProfilePicture } from "../services/userProfile";
 import * as FileSystem from "expo-file-system";
-import { Camera, CameraType, CameraView, useCameraPermissions } from "expo-camera";
+import {
+  Camera,
+  CameraType,
+  CameraView,
+  useCameraPermissions,
+} from "expo-camera";
 
 // -----------------------------------------------------
 // CardScannerModal
@@ -33,7 +38,7 @@ function CardScannerModal({ visible, onClose, onCardScanned }) {
   const cameraRef = useRef(null);
   const [facing, setFacing] = useState<CameraType>("back");
 
-  // If the permission hasn’t been determined yet
+  // If the permission hasn't been determined yet
   if (!permission) {
     return null;
   }
@@ -96,59 +101,63 @@ function CardScannerModal({ visible, onClose, onCardScanned }) {
 // OCR Helper Function
 // This function reads the image as base64 and sends it to the Google Vision API.
 async function extractCardNumberFromImage(uri: string) {
-  console.log('🖼️ Image URI:', uri);
-  console.log('📦 Reading image as base64...');
+  console.log("🖼️ Image URI:", uri);
+  console.log("📦 Reading image as base64...");
 
   const base64 = await FileSystem.readAsStringAsync(uri, {
     encoding: FileSystem.EncodingType.Base64,
   });
 
-  console.log('📦 Base64 length:', base64.length);
+  console.log("📦 Base64 length:", base64.length);
 
-try {
-  const base64 = await FileSystem.readAsStringAsync(uri, {
-    encoding: FileSystem.EncodingType.Base64,
-  });
+  try {
+    const base64 = await FileSystem.readAsStringAsync(uri, {
+      encoding: FileSystem.EncodingType.Base64,
+    });
 
-  const apiKey = 'AIzaSyCLspCimLs5Xuwu3it0jDQX3wxNlWHL5eU'; // Replace with your actual key
-  const body = JSON.stringify({
-    requests: [
+    const apiKey = "AIzaSyCLspCimLs5Xuwu3it0jDQX3wxNlWHL5eU"; // Replace with your actual key
+    const body = JSON.stringify({
+      requests: [
+        {
+          image: { content: base64 },
+          features: [{ type: "TEXT_DETECTION" }],
+        },
+      ],
+    });
+
+    const response = await fetch(
+      `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
       {
-        image: { content: base64 },
-        features: [{ type: 'TEXT_DETECTION' }],
-      },
-    ],
-  });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      }
+    );
 
-  const response = await fetch(
-    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
-    {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body,
-    }
-  );
-  
-  const result = await response.json();
-  const ocrText = result.responses?.[0]?.textAnnotations?.[0]?.description || '';
-  console.log('📨 Raw Google Vision API result:', JSON.stringify(result, null, 2));
-  // 👇 LOG the raw OCR text so we can debug
-  console.log('📃 OCR Raw Text:\n', ocrText);
+    const result = await response.json();
+    const ocrText =
+      result.responses?.[0]?.textAnnotations?.[0]?.description || "";
+    console.log(
+      "📨 Raw Google Vision API result:",
+      JSON.stringify(result, null, 2)
+    );
+    // 👇 LOG the raw OCR text so we can debug
+    console.log("📃 OCR Raw Text:\n", ocrText);
 
-  // Try multiple RegEx formats
-  const cardNumberMatch = ocrText.match(/\b(?:\d[ -]*?){13,16}\b/);
-  const expiryMatch = ocrText.match(/\b(0[1-9]|1[0-2])\/?([0-9]{2})\b/);
-  console.log('cardNumberMatch', cardNumberMatch);
-  console.log('expiryMatch', expiryMatch);
+    // Try multiple RegEx formats
+    const cardNumberMatch = ocrText.match(/\b(?:\d[ -]*?){13,16}\b/);
+    const expiryMatch = ocrText.match(/\b(0[1-9]|1[0-2])\/?([0-9]{2})\b/);
+    console.log("cardNumberMatch", cardNumberMatch);
+    console.log("expiryMatch", expiryMatch);
 
-  return {
-    cardNumber: cardNumberMatch?.[0]?.replace(/[^\d]/g, '') || null,
-    expiry: expiryMatch ? `${expiryMatch[1]}/${expiryMatch[2]}` : null,
-  };
-} catch (err) {
-  console.error('❌ OCR Error:', err);
-  return { cardNumber: null, expiry: null };
-}
+    return {
+      cardNumber: cardNumberMatch?.[0]?.replace(/[^\d]/g, "") || null,
+      expiry: expiryMatch ? `${expiryMatch[1]}/${expiryMatch[2]}` : null,
+    };
+  } catch (err) {
+    console.error("❌ OCR Error:", err);
+    return { cardNumber: null, expiry: null };
+  }
 }
 
 // -----------------------------------------------------
@@ -365,7 +374,10 @@ export default function Profile() {
                 <ActivityIndicator size="large" color="#4C38CD" />
               ) : (
                 <>
-                  <Image source={{ uri: avatarUrl }} style={styles.profileImage} />
+                  <Image
+                    source={{ uri: avatarUrl }}
+                    style={styles.profileImage}
+                  />
                   <View style={styles.editIconContainer}>
                     <Feather name="edit-2" size={16} color="white" />
                   </View>
@@ -384,9 +396,7 @@ export default function Profile() {
             <View style={styles.cardContent}>
               <View style={styles.cardLeftSection}>
                 <Text style={styles.cardName}>{cardName}</Text>
-                <Text style={styles.cardNumber}>
-                  {cardNumber}
-                </Text>
+                <Text style={styles.cardNumber}>{cardNumber}</Text>
                 {cardData?.expiry && (
                   <Text style={styles.cardExpiry}>
                     Expiry: {cardData.expiry}
@@ -402,6 +412,23 @@ export default function Profile() {
           {/* Settings Options */}
           <View style={styles.optionsContainer}>
             <Text style={styles.sectionTitle}>Settings</Text>
+
+            <TouchableOpacity
+              style={styles.optionItem}
+              onPress={() => router.push("/premium")}
+            >
+              <Feather
+                name="star"
+                size={22}
+                color="#FFC107"
+                style={styles.optionIcon}
+              />
+              <Text style={styles.optionText}>Premium</Text>
+              <View style={styles.newFeatureBadge}>
+                <Text style={styles.newFeatureText}>NEW</Text>
+              </View>
+              <Feather name="chevron-right" size={22} color="#CCCCCC" />
+            </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.optionItem}
@@ -453,7 +480,12 @@ export default function Profile() {
 
           {/* Logout Button */}
           <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-            <Feather name="log-out" size={20} color="#FF4444" style={styles.logoutIcon} />
+            <Feather
+              name="log-out"
+              size={20}
+              color="#FF4444"
+              style={styles.logoutIcon}
+            />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
         </View>
@@ -693,5 +725,16 @@ const styles = StyleSheet.create({
     alignItems: "center",
     flex: 1,
   },
+  newFeatureBadge: {
+    backgroundColor: "#4C38CD",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    marginRight: 10,
+  },
+  newFeatureText: {
+    color: "white",
+    fontSize: 10,
+    fontWeight: "bold",
+  },
 });
-

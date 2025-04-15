@@ -83,9 +83,10 @@ export const logoutUser = async () => {
   try {
     await signOut(auth);
 
-    // Clear persisted user data
+    // Clear persisted user data but keep saved credentials if they exist
     try {
       await AsyncStorage.removeItem("@user");
+      // We intentionally don't remove "@savedCredentials" here to support "Remember Me" functionality
     } catch (storageError) {
       console.error("Error clearing user from storage:", storageError);
     }
