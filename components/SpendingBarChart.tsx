@@ -1,6 +1,20 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
 
+const categories = [
+  "entertainment",
+  "travel",
+  "bills",
+  "groceries",
+  "dining",
+  "subscriptions",
+  "transportation",
+  "recreational",
+  "shopping",
+  "health",
+  "misc",
+];
+
 const SpendingBarChart = ({
   data,
   height = 200,
@@ -81,31 +95,15 @@ const SpendingBarChart = ({
                   ]}
                 ></View>
               </View>
-              categories = [
-                  "entertainment",
-                  "travel",
-                  "bills",
-                  "groceries",
-                  "dining",
-                  "subscriptions",
-                  "transportation",
-                  "recreational",
-                  "shopping",
-                  "health",
-                  "misc",
-              ];
               {/* Category name label */}
-              
             </View>
-            <Text style={styles.barLabel}>{item.name.substring(0,3)}</Text>
+            <Text style={styles.barLabel}>{item.name.substring(0, 3)}</Text>
           </View>
         ))}
       </View>
     </View>
   );
 };
-
-
 
 const styles = StyleSheet.create({
   container: {

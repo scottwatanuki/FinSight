@@ -13,17 +13,45 @@ import {
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { Feather } from "@expo/vector-icons";
-import { doc, getDoc, collection, onSnapshot, query, where, Timestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  collection,
+  onSnapshot,
+  query,
+  where,
+  Timestamp,
+  DocumentData,
+} from "firebase/firestore";
 import { db } from "../../firebase";
 import DropDownPicker from "react-native-dropdown-picker";
-import { fetchSpendingDataByPeriod } from "../backend/fetchData";
+import {
+  fetchSpendingDataByPeriod,
+  fetchUserGoals,
+  fetchGoalByID,
+} from "../backend/fetchData";
 
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
 import MonthlySpendingChart from "../../components/MonthlySpendingChart";
-import SavingsGoalCard from "../../components/SavingsGoalCard";
+import SavingsGoalCard from "../components/SavingsGoalCard";
 import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import { useSpendingData } from "../../hooks/useSpendingData";
+
+// Define interfaces for better type safety
+interface UserGoal {
+  id: string;
+  goalName: string;
+  currentAmount: number;
+  targetAmount: number;
+  isCompleted: boolean;
+}
+
+interface SpendingDataState {
+  loading: boolean;
+  data: any | null;
+  error: Error | null;
+}
 
 const styles = StyleSheet.create({
   container: {
@@ -205,32 +233,61 @@ const styles = StyleSheet.create({
     marginLeft: 24,
   },
   viewDropdownText: {
-      color: "#3C3ADD",
-      fontWeight: "bold",
-      textAlign: "left",
+    color: "#3C3ADD",
+    fontWeight: "bold",
+    textAlign: "left",
   },
   viewDropdownContainer: {
-      borderWidth: 0,
+    borderWidth: 0,
   },
   viewDropdownContainerStyle: {
-      width: 150,
+    width: 150,
+  },
+  noGoalsContainer: {
+    backgroundColor: "white",
+    borderRadius: 20,
+    padding: 20,
+    marginVertical: 10,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  noGoalsText: {
+    fontSize: 16,
+    color: "#888",
+    marginBottom: 15,
+  },
+  addGoalButton: {
+    backgroundColor: "#4C38CD",
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+  },
+  addGoalButtonText: {
+    color: "white",
+    fontWeight: "600",
   },
 });
 
 export default function HomeTab() {
-    const [view, setView] = useState("Weekly");
-    const [viewOpen, setViewOpen] = useState(false);
-    const { user } = useAuth();
-    const router = useRouter();
-    const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
-    const [userData, setUserData] = useState(null);
-    const [activeTab, setActiveTab] = useState(0); // For paging between different visualizations
-    const [spendingData, setSpendingData] = useState({
-      loading: true,
-      data: null,
-      error: null
-    });
-    const [isListening, setIsListening] = useState(false);
+  const [view, setView] = useState("Weekly");
+  const [viewOpen, setViewOpen] = useState(false);
+  const { user } = useAuth();
+  const router = useRouter();
+  const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
+  const [userData, setUserData] = useState<DocumentData | null>(null);
+  const [activeTab, setActiveTab] = useState(0); // For paging between different visualizations
+  const [spendingData, setSpendingData] = useState<SpendingDataState>({
+    loading: true,
+    data: null,
+    error: null,
+  });
+  const [isListening, setIsListening] = useState(false);
+  const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
+  const [loadingGoals, setLoadingGoals] = useState(true);
   // Use our custom hook to get spending data
   const spendingDataHook = useSpendingData(user?.uid, selectedPeriod);
 
@@ -252,20 +309,74 @@ export default function HomeTab() {
     fetchUserData();
   }, [user]);
 
+  // Load savings goals
+  useEffect(() => {
+    const loadSavingsGoals = async () => {
+      if (!user) return;
+
+      setLoadingGoals(true);
+      try {
+        const goals = await fetchUserGoals(user.uid);
+        console.log("Fetched user goals:", goals);
+        setUserGoals(goals as UserGoal[]);
+      } catch (error) {
+        console.error("Error fetching user goals:", error);
+      } finally {
+        setLoadingGoals(false);
+      }
+    };
+
+    loadSavingsGoals();
+  }, [user]);
+
+  // Set up goals listener
+  useEffect(() => {
+    if (!user) return;
+
+    // Listen for goals changes
+    const goalsRef = collection(db, "goals", user.uid, "settings");
+    const goalsUnsubscribe = onSnapshot(
+      goalsRef,
+      (querySnapshot) => {
+        const goals: UserGoal[] = [];
+        querySnapshot.forEach((doc) => {
+          goals.push({
+            id: doc.id,
+            ...doc.data(),
+          } as UserGoal);
+        });
+        setUserGoals(goals);
+        console.log("Goals updated in real-time:", goals);
+      },
+      (error) => {
+        console.error("Error listening to goals changes:", error);
+      }
+    );
+
+    // Cleanup function
+    return () => {
+      goalsUnsubscribe();
+    };
+  }, [user]);
+
   // Set up real-time listeners for database changes
   useEffect(() => {
     if (!user) return;
-    
+
     console.log("Setting up database listeners for real-time updates");
-    
+
     // Listen for budget changes
     const budgetRef = doc(db, "budgets", user.uid);
-    const budgetUnsubscribe = onSnapshot(budgetRef, (docSnapshot) => {
-      console.log("Budget updated in database, refreshing data...");
-      fetchData();
-    }, (error) => {
-      console.error("Error listening to budget changes:", error);
-    });
+    const budgetUnsubscribe = onSnapshot(
+      budgetRef,
+      (docSnapshot) => {
+        console.log("Budget updated in database, refreshing data...");
+        fetchData();
+      },
+      (error) => {
+        console.error("Error listening to budget changes:", error);
+      }
+    );
 
     // Listen for spending history changes across all categories
     const categories = [
@@ -280,18 +391,30 @@ export default function HomeTab() {
       "shopping",
       "health",
       "misc",
-  ];
-    const transactionUnsubscribes = [];
+    ];
+    const transactionUnsubscribes: (() => void)[] = [];
 
-    categories.forEach(category => {
-      const spendingRef = collection(db, "spending_history", user.uid, category);
+    categories.forEach((category) => {
+      const spendingRef = collection(
+        db,
+        "spending_history",
+        user.uid,
+        category
+      );
       // We don't filter by date here to catch all changes
-      const unsubscribe = onSnapshot(spendingRef, (querySnapshot) => {
-        console.log(`${category} transactions updated, refreshing data...`);
-        fetchData();
-      }, (error) => {
-        console.error(`Error listening to ${category} transaction changes:`, error);
-      });
+      const unsubscribe = onSnapshot(
+        spendingRef,
+        (querySnapshot) => {
+          console.log(`${category} transactions updated, refreshing data...`);
+          fetchData();
+        },
+        (error) => {
+          console.error(
+            `Error listening to ${category} transaction changes:`,
+            error
+          );
+        }
+      );
 
       transactionUnsubscribes.push(unsubscribe);
     });
@@ -300,15 +423,15 @@ export default function HomeTab() {
     return () => {
       console.log("Cleaning up database listeners");
       budgetUnsubscribe();
-      transactionUnsubscribes.forEach(unsubscribe => unsubscribe());
+      transactionUnsubscribes.forEach((unsubscribe) => unsubscribe());
     };
   }, [user]); // Remove isListening dependency to ensure listeners are always set up
 
   // Function to fetch data based on the current view
   const fetchData = async () => {
     if (!user) return;
-    
-    setSpendingData(prev => ({ ...prev, loading: true }));
+
+    setSpendingData((prev) => ({ ...prev, loading: true }));
     try {
       console.log(`Fetching spending data for period: ${view}`);
       const data = await fetchSpendingDataByPeriod(user.uid, view);
@@ -316,14 +439,14 @@ export default function HomeTab() {
       setSpendingData({
         loading: false,
         data: data,
-        error: null
+        error: null,
       });
     } catch (error) {
       console.error("Error fetching spending data:", error);
       setSpendingData({
         loading: false,
         data: null,
-        error: error
+        error: error as Error,
       });
     }
   };
@@ -335,16 +458,17 @@ export default function HomeTab() {
     }
   }, [user, view]);
 
-    // Add back the handler functions for the restored components
-    const handleSavingsGoalPress = () => {
-        // This would navigate to a savings goal detail page
-        // router.push("/savings/goal/1");
-    };
+  // Add back the handler functions for the restored components
+  const handleSavingsGoalPress = (goalId: string) => {
+    // This would navigate to a savings goal detail page
+    // router.push(`/savings/goal/${goalId}`);
+    console.log("Goal pressed:", goalId);
+  };
 
-    const handleViewAllInsights = () => {
-        // This would navigate to insights page
-        // router.push("/insights");
-    };
+  const handleViewAllInsights = () => {
+    // This would navigate to insights page
+    // router.push("/insights");
+  };
 
   const userName = userData?.username;
 
@@ -360,6 +484,7 @@ export default function HomeTab() {
     percentage: 75,
   };
 
+  // Only use fallbackData when there's no actual data
   const displayData = spendingData.data || fallbackData;
 
   const renderActiveChart = () => {
@@ -367,7 +492,9 @@ export default function HomeTab() {
       case 0:
         return (
           <View style={styles.chartContainer}>
-            <Text style={styles.chartTitle}>Budget vs Spending ({selectedPeriod})</Text>
+            <Text style={styles.chartTitle}>
+              Budget vs Spending ({selectedPeriod})
+            </Text>
 
             {/* Show loading indicator if data is loading */}
             {spendingData.loading ? (
@@ -414,82 +541,125 @@ export default function HomeTab() {
 
   return (
     <SafeAreaView style={styles.container}>
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-            {/* User Greeting Section at the top, but centered */}
-            <View style={[styles.greetingContainer, { justifyContent: 'center' }]}>
-                <Text style={[styles.greetingText, { textAlign: 'center' }]}>Hey, {userName}!</Text>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* User Greeting Section at the top, but centered */}
+        <View style={[styles.greetingContainer, { justifyContent: "center" }]}>
+          <Text style={[styles.greetingText, { textAlign: "center" }]}>
+            Hey, {userName}!
+          </Text>
+        </View>
+
+        {/* Total Expenses Section */}
+        <View style={styles.expensesContainer}>
+          <DropDownPicker
+            open={viewOpen}
+            value={view}
+            items={[
+              { label: "Daily", value: "Daily" },
+              { label: "Weekly", value: "Weekly" },
+              { label: "Monthly", value: "Monthly" },
+              { label: "Yearly", value: "Yearly" },
+            ]}
+            setOpen={setViewOpen}
+            setValue={setView}
+            style={styles.viewDropdown}
+            textStyle={styles.viewDropdownText}
+            dropDownContainerStyle={styles.viewDropdownContainer}
+            containerStyle={styles.viewDropdownContainerStyle}
+          />
+          {/* Show loading indicator if data is loading */}
+          {spendingData.loading ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4C38CD" />
             </View>
+          ) : (
+            <>
+              {/* Progress Circle using our component with modified props */}
+              <CircularProgress
+                key={`progress-${displayData.percentage}`} // Add key to force re-render on percentage change
+                percentage={displayData.percentage}
+                size={240}
+                strokeWidth={20}
+                useDynamicColor={true}
+                bgColor="#E6E6FA"
+                rotation={-90}
+              >
+                <Text style={styles.expensesLabel}>Expenses</Text>
+                <Text style={styles.expensesAmount}>
+                  ${displayData.totalSpent.toLocaleString()}
+                </Text>
+                <Text style={styles.expensesMax}>
+                  Out of $
+                  {(typeof displayData.totalBudget === "number" &&
+                  !isNaN(displayData.totalBudget)
+                    ? displayData.totalBudget
+                    : 0
+                  ).toLocaleString()}
+                </Text>
+              </CircularProgress>
+            </>
+          )}
+        </View>
 
-            {/* Total Expenses Section */}
-            <View style={styles.expensesContainer}>
-                <DropDownPicker
-                    open={viewOpen}
-                    value={view}
-                    items={[
-                        { label: "Daily", value: "Daily" },
-                        { label: "Weekly", value: "Weekly" },
-                        { label: "Monthly", value: "Monthly" },
-                        { label: "Yearly", value: "Yearly" },
-                    ]}
-                    setOpen={setViewOpen}
-                    setValue={setView}
-                    style={styles.viewDropdown}
-                    textStyle={styles.viewDropdownText}
-                    dropDownContainerStyle={styles.viewDropdownContainer}
-                    containerStyle={styles.viewDropdownContainerStyle}
-                />
-                {/* Show loading indicator if data is loading */}
-                {spendingData.loading ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#4C38CD" />
-                    </View>
-                ) : (
-                    <>
-                        {/* Progress Circle using our component with modified props */}
-                        <CircularProgress
-                            key={`progress-${displayData.percentage}`} // Add key to force re-render on percentage change
-                            percentage={displayData.percentage}
-                            size={240}
-                            strokeWidth={20}
-                            useDynamicColor={true}
-                            bgColor="#E6E6FA"
-                            rotation={-90}
-                            >
-                            <Text style={styles.expensesLabel}>Expenses</Text>
-                            <Text style={styles.expensesAmount}>
-                                ${displayData.totalSpent.toLocaleString()}
-                            </Text>
-                            <Text style={styles.expensesMax}>
-                                Out of ${(typeof displayData.totalBudget === 'number' && !isNaN(displayData.totalBudget) ? 
-                                  displayData.totalBudget : 0).toLocaleString()}
-                            </Text>
-                        </CircularProgress>
-                    </>
-                )}
+        {/* Spending Trends Section */}
+        <View style={styles.trendsSectionContainer}>
+          <Text style={styles.sectionTitle}>Spending Trends</Text>
+
+          {/* Chart content based on active tab */}
+          {renderActiveChart()}
+        </View>
+
+        {/* Savings Goals Section */}
+        <View style={styles.trendsSectionContainer}>
+          <Text style={styles.sectionTitle}>Savings Goals</Text>
+
+          {loadingGoals ? (
+            <View style={styles.loadingContainer}>
+              <ActivityIndicator size="large" color="#4C38CD" />
             </View>
-
-            {/* Spending Trends Section */}
-            <View style={styles.trendsSectionContainer}>
-                <Text style={styles.sectionTitle}>Spending Trends</Text>
-
-                {/* Chart content based on active tab */}
-                {renderActiveChart()}
-
-                
+          ) : userGoals.length > 0 ? (
+            userGoals.map((goal) => (
+              <SavingsGoalCard
+                key={goal.id}
+                goalId={goal.id}
+                title={goal.goalName}
+                currentAmount={goal.currentAmount}
+                targetAmount={goal.targetAmount}
+                deadline="Dec 2025" // This could be added to the goal data in the future
+                isCompleted={goal.isCompleted}
+                onPress={() => handleSavingsGoalPress(goal.id)}
+                onGoalDeleted={(deletedGoalId: string) => {
+                  // Remove the deleted goal from the state
+                  setUserGoals((prevGoals) =>
+                    prevGoals.filter((g) => g.id !== deletedGoalId)
+                  );
+                }}
+              />
+            ))
+          ) : (
+            <View style={styles.noGoalsContainer}>
+              <Text style={styles.noGoalsText}>
+                You have no savings goals yet!
+              </Text>
+              <TouchableOpacity
+                style={styles.addGoalButton}
+                onPress={() => {
+                  // Instead of navigating to a non-existent route, show an alert
+                  console.log("Add goal button pressed");
+                  alert(
+                    "Feature coming soon! You can add goals from the Firebase console for now."
+                  );
+                }}
+              >
+                <Text style={styles.addGoalButtonText}>Add a Goal</Text>
+              </TouchableOpacity>
             </View>
+          )}
+        </View>
 
-            {/* Restore Savings Goal Card */}
-            <SavingsGoalCard
-                title="New Car"
-                currentAmount={3500}
-                targetAmount={15000}
-                deadline="Dec 2023"
-                onPress={handleSavingsGoalPress}
-            />
-
-            {/* Restore Financial Insights Card */}
-            <FinancialInsightsCard onViewAll={handleViewAllInsights} />
-        </ScrollView>
+        {/* Restore Financial Insights Card */}
+        <FinancialInsightsCard onViewAll={handleViewAllInsights} />
+      </ScrollView>
     </SafeAreaView>
-);
+  );
 }
