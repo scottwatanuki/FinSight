@@ -352,9 +352,18 @@ export default function Profile() {
                 lastFour: result.cardNumber.slice(-4),
                 expiry: result.expiry,
             }));
+
+            const cardInfo = {
+                cardType,
+                lastFour,
+                cardNumber: result.cardNumber,
+                expiry: result.expiry,
+                name: user.email?.split("@")[0] || "User",
+            };
+
             Alert.alert("Card Scanned", "Card details updated successfully.");
             try {
-                await setDoc(cardRef, cardData);
+                await setDoc(cardRef, cardInfo);
                 Alert.alert("Card Added", "Card saved to your profile.");
             } catch (err) {
                 Alert.alert("Error", "Failed to save card to DB");
