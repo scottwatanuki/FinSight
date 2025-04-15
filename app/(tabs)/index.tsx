@@ -450,6 +450,7 @@ export default function HomeTab() {
       });
     }
   };
+  
 
   // Initial data load and when view changes
   useEffect(() => {
@@ -656,9 +657,6 @@ export default function HomeTab() {
             </View>
           )}
         </View>
-
-        {/* Restore Financial Insights Card */}
-        <FinancialInsightsCard onViewAll={handleViewAllInsights} />
       </ScrollView>
     </SafeAreaView>
   );
