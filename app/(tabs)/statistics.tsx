@@ -484,7 +484,7 @@ export default function Statistics() {
                     >
                         <IconSymbol
                             size={28}
-                            name="pencil.circle"
+                            name="plus.circle"
                             color="#3C3ADD"
                         />
                     </TouchableOpacity>
@@ -705,7 +705,7 @@ export default function Statistics() {
             </Modal>
             <Modal isVisible={isModalVisible} onBackdropPress={toggleModal}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>Edit Budget</Text>
+                    <Text style={styles.modalTitle}>Add/Edit Budget</Text>
                     <TouchableOpacity
                         style={styles.closeButton}
                         onPress={toggleModal}
