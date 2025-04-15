@@ -1,5 +1,5 @@
-import React from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useState } from "react";
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
 
 const categories = [
   "entertainment",
@@ -23,6 +23,9 @@ const SpendingBarChart = ({
   budgetLineColor = "#ddd",
   overBudgetColor = "#FF5757",
 }) => {
+  // Add state to track which bar is selected
+  const [selectedBarIndex, setSelectedBarIndex] = useState(null);
+  
   // Find the maximum value for scaling
   const maxValue = Math.max(
     ...data.map((item) => Math.max(item.spent, item.budget))
@@ -52,7 +55,12 @@ const SpendingBarChart = ({
       {/* Chart Area */}
       <View style={[styles.chartArea, { height }]}>
         {data.map((item, index) => (
-          <View key={index} style={styles.barGroup}>
+          <TouchableOpacity
+            key={index}
+            style={styles.barGroup}
+            onPress={() => setSelectedBarIndex(selectedBarIndex === index ? null : index)}
+            activeOpacity={0.8}
+          >
             <View style={[styles.barColumn, { height: "100%" }]}>
               {/* Over budget indicator */}
               {item.spent > item.budget && (
@@ -95,10 +103,18 @@ const SpendingBarChart = ({
                   ]}
                 ></View>
               </View>
-              {/* Category name label */}
+              
+              {/* Tooltip that appears when bar is selected */}
+              {selectedBarIndex === index && (
+                <View style={styles.tooltip}>
+                  <Text style={styles.tooltipText}>
+                    {item.name}: ${item.spent.toLocaleString()}
+                  </Text>
+                </View>
+              )}
             </View>
             <Text style={styles.barLabel}>{item.name.substring(0, 3)}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
@@ -106,6 +122,7 @@ const SpendingBarChart = ({
 };
 
 const styles = StyleSheet.create({
+  // Keep all existing styles...
   container: {
     flexDirection: "row",
     paddingBottom: 20,
@@ -166,18 +183,28 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // overBudgetDot: {
-  //   width: 10,
-  //   height: 10,
-  //   borderRadius: 5,
-  //   borderWidth: 1,
-  //   borderColor: "white",
-  // },
   barLabel: {
     marginTop: 0,
-
     fontSize: 12,
     color: "#333",
+  },
+  // New tooltip styles
+  tooltip: {
+    position: 'absolute',
+    bottom: '100%',
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    borderRadius: 5,
+    padding: 8,
+    marginBottom: 5,
+    width: 120,
+    alignSelf: 'center',
+    zIndex: 10,
+  },
+  tooltipText: {
+    color: 'white',
+    fontSize: 12,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
 });
 
