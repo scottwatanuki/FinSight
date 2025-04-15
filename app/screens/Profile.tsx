@@ -345,12 +345,26 @@ export default function Profile() {
                 cardID
             );
 
+                // Determine the card type based on the first digit of the card number
+            let cardType = "Unknown";
+            const firstDigit = result.cardNumber.charAt(0);
+            if (firstDigit === "3") {
+                cardType = "American Express";
+            } else if (firstDigit === "4") {
+                cardType = "Visa";
+            } else if (firstDigit === "5") {
+                cardType = "Mastercard";
+            } else if (firstDigit === "6") {
+                cardType = "Discover";
+            }
+
             // Update the card data—here we update the "lastFour" and add an "expiry" field.
             setCardData((prev) => ({
                 ...prev,
                 cardNumber: result.cardNumber,
                 lastFour: result.cardNumber.slice(-4),
                 expiry: result.expiry,
+                cardType: cardType,
             }));
 
             const cardInfo = {
@@ -385,7 +399,7 @@ export default function Profile() {
 
     // Card display values
     const cardName = cardData?.name || displayName;
-    const cardType = cardData?.type || "Visa";
+
     // If a full card number was scanned, display that; otherwise show a default masked number.
     const cardNumber = cardData?.cardNumber
         ? cardData.cardNumber
@@ -396,7 +410,7 @@ export default function Profile() {
         cardData?.balance !== undefined
             ? `$${cardData.balance.toFixed(2)}`
             : "$3,469.52"; // Demo default value
-
+    
     if (isLoading) {
         return (
             <SafeAreaView style={styles.loadingContainer}>
