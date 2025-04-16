@@ -47,6 +47,7 @@ import SavingsGoalCard from "../components/SavingsGoalCard";
 import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import { useSpendingData } from "../../hooks/useSpendingData";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
 
 // Define interfaces for better type safety
 interface UserGoal {
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    maxHeight: height * 0.9,
+    maxHeight: "90%",
   },
   modalDragHandle: {
     width: 40,
@@ -407,7 +408,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   modalScrollView: {
-    maxHeight: height * 0.6,
+    maxHeight: 400,
   },
   datePickerButton: {
     flexDirection: "row",
@@ -431,6 +432,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     borderRadius: 12,
     overflow: "hidden",
+    marginBottom: 10,
   },
   iosPickerHeader: {
     flexDirection: "row",
@@ -447,6 +449,25 @@ const styles = StyleSheet.create({
   iosDatePicker: {
     height: 200,
     width: "100%",
+  },
+  selectedDateContainer: {
+    backgroundColor: "#F5F5FF",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectedDateLabel: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  selectedDateValue: {
+    fontSize: 16,
+    color: "#4C38CD",
+    fontWeight: "600",
   },
 });
 
@@ -725,26 +746,33 @@ export default function HomeTab() {
     }
   };
 
-  // Format date for display
+  // Format date for display - replace with a more reliable method
   const formatDate = (date: Date): string => {
-    const months = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
-    ];
-    const month = months[date.getMonth()];
-    const day = date.getDate();
-    const year = date.getFullYear();
-    return `${month} ${day}, ${year}`;
+    try {
+      // Use date-fns to format the date consistently
+      return format(date, "MMM d, yyyy");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      // Fallback manual formatting
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const month = months[date.getMonth()];
+      const day = date.getDate();
+      const year = date.getFullYear();
+      return `${month} ${day}, ${year}`;
+    }
   };
 
   // Show modal with animation
@@ -763,23 +791,29 @@ export default function HomeTab() {
     }).start();
   };
 
-  // Handle date change
+  // Handle date change with better error handling
   const onDateChange = (event: any, selectedDate?: Date) => {
+    console.log("Date selected:", selectedDate); // Debug log
+
     setShowDatePicker(Platform.OS === "ios");
+
     if (selectedDate) {
-      setDeadlineDate(selectedDate);
-      setNewGoalDeadline(formatDate(selectedDate));
+      // Ensure date is valid
+      if (!isNaN(selectedDate.getTime())) {
+        setDeadlineDate(selectedDate);
+        const formattedDate = formatDate(selectedDate);
+        console.log("Formatted date:", formattedDate); // Debug log
+        setNewGoalDeadline(formattedDate);
+      } else {
+        console.error("Invalid date selected");
+      }
     }
   };
 
-  // Show date picker based on platform
+  // Show date picker with platform-specific handling
   const showDatePickerHandler = () => {
-    if (Platform.OS === "android") {
-      setShowDatePicker(true);
-    } else {
-      // On iOS, the picker is shown inside the view
-      setShowDatePicker(true);
-    }
+    console.log("Opening date picker");
+    setShowDatePicker(true);
   };
 
   // Handle adding a goal with formatted date
@@ -1021,7 +1055,10 @@ export default function HomeTab() {
               <View style={styles.modalDragHandle} />
               <Text style={styles.modalTitle}>Create New Goal</Text>
 
-              <ScrollView style={styles.modalScrollView}>
+              <ScrollView
+                style={styles.modalScrollView}
+                showsVerticalScrollIndicator={false}
+              >
                 <View style={styles.inputGroup}>
                   <Text style={styles.inputLabel}>
                     What are you saving for?
@@ -1061,9 +1098,21 @@ export default function HomeTab() {
                     <Feather name="calendar" size={20} color="#555" />
                   </Pressable>
 
+                  {/* Show currently selected date in a more visible format */}
+                  {showDatePicker && (
+                    <View style={styles.selectedDateContainer}>
+                      <Text style={styles.selectedDateLabel}>
+                        Selected date:
+                      </Text>
+                      <Text style={styles.selectedDateValue}>
+                        {formatDate(deadlineDate)}
+                      </Text>
+                    </View>
+                  )}
+
                   {showDatePicker && (
                     <>
-                      {Platform.OS === "ios" && (
+                      {Platform.OS === "ios" ? (
                         <View style={styles.iosPickerContainer}>
                           <View style={styles.iosPickerHeader}>
                             <TouchableOpacity
@@ -1080,18 +1129,21 @@ export default function HomeTab() {
                             onChange={onDateChange}
                             minimumDate={new Date()}
                             style={styles.iosDatePicker}
+                            textColor="#000000"
+                            themeVariant="light"
                           />
                         </View>
-                      )}
-
-                      {Platform.OS === "android" && (
+                      ) : (
                         <DateTimePicker
                           testID="dateTimePicker"
                           value={deadlineDate}
                           mode="date"
+                          is24Hour={true}
                           display="default"
                           onChange={onDateChange}
                           minimumDate={new Date()}
+                          themeVariant="light"
+                          textColor="#000000"
                         />
                       )}
                     </>
