@@ -3,9 +3,8 @@ import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
 import { useEffect } from "react";
 import { Feather } from "@expo/vector-icons";
-import { HapticTab } from "@/components/HapticTab";
 import { IconSymbol } from "@/components/ui/IconSymbol";
-import TabBarBackground from "@/components/ui/TabBarBackground";
+import { CustomTabBar } from "@/components/CustomTabBar";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
 
@@ -24,12 +23,8 @@ export default function TabsLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarInactiveTintColor: "gray",
-        // tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
-        tabBarActiveTintColor: "#4C38CD",
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
       }}
+      tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"
