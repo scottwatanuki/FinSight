@@ -26,12 +26,61 @@ async function addGoal(userID, goalData) {
   try {
     const goalsRef = collection(db, "goals", userID, "settings");
     console.log("from pushData.js, adding goal in db");
-    const docRef = await addDoc(goalsRef, {
+
+    // Prepare the goal data for saving
+    const goalToSave = {
       goalName: goalData.goalName,
       targetAmount: Number(goalData.targetAmount),
       currentAmount: Number(goalData.currentAmount) || 0,
       isCompleted: false,
-    });
+    };
+
+    // Add deadline if provided
+    if (goalData.deadline) {
+      goalToSave.deadline = goalData.deadline;
+
+      // If timestamp is not provided but deadline is, try to parse the timestamp
+      if (
+        !goalData.deadlineTimestamp &&
+        typeof goalData.deadline === "string"
+      ) {
+        const dateRegex = /^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})$/;
+        const matches = goalData.deadline.match(dateRegex);
+
+        if (matches) {
+          const monthStr = matches[1];
+          const day = parseInt(matches[2]);
+          const year = parseInt(matches[3]);
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const monthIndex = months.indexOf(monthStr);
+
+          if (monthIndex !== -1) {
+            const date = new Date(year, monthIndex, day);
+            goalToSave.deadlineTimestamp = date.getTime();
+          }
+        }
+      }
+    }
+
+    // Add deadline timestamp if provided
+    if (goalData.deadlineTimestamp) {
+      goalToSave.deadlineTimestamp = goalData.deadlineTimestamp;
+    }
+
+    const docRef = await addDoc(goalsRef, goalToSave);
     return docRef.id;
   } catch (error) {
     console.error("Error adding goal in pushData.js :", error);
@@ -49,6 +98,16 @@ async function addGoal(userID, goalData) {
 async function updateGoal(userID, goalID, amountToAdd) {
   try {
     const goalRef = doc(db, "goals", userID, "settings", goalID);
+
+    // First check if the document exists
+    const goalDoc = await getDoc(goalRef);
+    if (!goalDoc.exists()) {
+      console.error(
+        `Error updating goal in pushData.js: No document to update with ID ${goalID}`
+      );
+      return null;
+    }
+
     const amount = Number(amountToAdd);
 
     await updateDoc(goalRef, {
@@ -205,6 +264,47 @@ async function updateGoalDetails(userID, goalID, goalData) {
 
     if (goalData.deadline !== undefined) {
       updateData.deadline = goalData.deadline;
+
+      // Ensure that if deadline is updated, we also update the timestamp to match
+      if (
+        goalData.deadlineTimestamp === undefined &&
+        typeof goalData.deadline === "string"
+      ) {
+        // Try to parse the date from the deadline string
+        const dateRegex = /^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})$/;
+        const matches = goalData.deadline.match(dateRegex);
+
+        if (matches) {
+          const monthStr = matches[1];
+          const day = parseInt(matches[2]);
+          const year = parseInt(matches[3]);
+          const months = [
+            "Jan",
+            "Feb",
+            "Mar",
+            "Apr",
+            "May",
+            "Jun",
+            "Jul",
+            "Aug",
+            "Sep",
+            "Oct",
+            "Nov",
+            "Dec",
+          ];
+          const monthIndex = months.indexOf(monthStr);
+
+          if (monthIndex !== -1) {
+            const date = new Date(year, monthIndex, day);
+            updateData.deadlineTimestamp = date.getTime();
+          }
+        }
+      }
+    }
+
+    // Save timestamp if provided
+    if (goalData.deadlineTimestamp !== undefined) {
+      updateData.deadlineTimestamp = goalData.deadlineTimestamp;
     }
 
     await updateDoc(goalRef, updateData);
@@ -236,9 +336,22 @@ const mockUserID = "7bx47gI4c5WuiKj8RsFEbQfUmEm1";
 const mockGoalID = "3PQT3jUdWhdfKlI8lSBw";
 
 async function runTest() {
-  // const goalID = await addGoal(mockUserID, mockGoal);
-  // console.log(goalID);
-  updateGoal(mockUserID, mockGoalID, 300);
+  // Create a new goal first, then update it
+  try {
+    // First create a goal to get a valid goalID
+    const goalID = await addGoal(mockUserID, mockGoal);
+    console.log("Created new goal with ID:", goalID);
+
+    // Then update the newly created goal
+    if (goalID) {
+      await updateGoal(mockUserID, goalID, 300);
+    } else {
+      console.log("Failed to create goal, cannot update");
+    }
+  } catch (error) {
+    console.error("Test failed:", error);
+  }
 }
 
-runTest();
+// Comment out the auto-running test to prevent errors
+// runTest();
