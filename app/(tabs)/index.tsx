@@ -9,6 +9,11 @@ import {
   ScrollView,
   ActivityIndicator,
   FlatList,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
@@ -30,6 +35,7 @@ import {
   fetchUserGoals,
   fetchGoalByID,
 } from "../backend/fetchData";
+import { addGoal } from "../backend/pushData";
 
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
@@ -168,10 +174,15 @@ const styles = StyleSheet.create({
   trendsSectionContainer: {
     marginVertical: 20,
   },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
   sectionTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 20,
   },
   chartContainer: {
     backgroundColor: "white",
@@ -270,6 +281,62 @@ const styles = StyleSheet.create({
     color: "white",
     fontWeight: "600",
   },
+  modalContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalContent: {
+    backgroundColor: "white",
+    padding: 20,
+    borderRadius: 20,
+    width: "80%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "bold",
+    marginBottom: 20,
+  },
+  inputLabel: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 5,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ccc",
+    padding: 10,
+    marginBottom: 20,
+  },
+  modalButtonsRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalButton: {
+    padding: 10,
+    borderRadius: 5,
+    flex: 0.48,
+  },
+  cancelButton: {
+    backgroundColor: "#ccc",
+  },
+  cancelButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+  },
+  addButton: {
+    backgroundColor: "#4C38CD",
+    padding: 10,
+    borderRadius: 5,
+  },
+  addButtonText: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "white",
+  },
 });
 
 export default function HomeTab() {
@@ -288,6 +355,9 @@ export default function HomeTab() {
   const [isListening, setIsListening] = useState(false);
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
   const [loadingGoals, setLoadingGoals] = useState(true);
+  const [addGoalModalVisible, setAddGoalModalVisible] = useState(false);
+  const [newGoalName, setNewGoalName] = useState("");
+  const [newGoalAmount, setNewGoalAmount] = useState("");
   // Use our custom hook to get spending data
   const spendingDataHook = useSpendingData(user?.uid, selectedPeriod);
 
@@ -314,13 +384,23 @@ export default function HomeTab() {
     const loadSavingsGoals = async () => {
       if (!user) return;
 
+      console.log("Starting to load savings goals for user:", user.uid);
       setLoadingGoals(true);
       try {
+        console.log("Calling fetchUserGoals...");
         const goals = await fetchUserGoals(user.uid);
         console.log("Fetched user goals:", goals);
-        setUserGoals(goals as UserGoal[]);
+
+        if (goals && goals.length > 0) {
+          console.log("Setting user goals in state. Goal count:", goals.length);
+          setUserGoals(goals as UserGoal[]);
+        } else {
+          console.log("No goals returned or empty array");
+          setUserGoals([]);
+        }
       } catch (error) {
         console.error("Error fetching user goals:", error);
+        setUserGoals([]);
       } finally {
         setLoadingGoals(false);
       }
@@ -539,6 +619,54 @@ export default function HomeTab() {
     }
   };
 
+  // Function to handle adding a new goal
+  const handleAddGoal = async () => {
+    if (!user) return;
+
+    // Validate inputs
+    if (!newGoalName.trim()) {
+      Alert.alert("Invalid Goal", "Please enter a name for your goal");
+      return;
+    }
+
+    const amount = parseFloat(newGoalAmount);
+    if (isNaN(amount) || amount <= 0) {
+      Alert.alert("Invalid Amount", "Please enter a valid positive number");
+      return;
+    }
+
+    try {
+      // Close modal first to improve perceived performance
+      setAddGoalModalVisible(false);
+
+      // Create the goal data object
+      const goalData = {
+        goalName: newGoalName,
+        targetAmount: amount,
+        currentAmount: 0,
+        isCompleted: false,
+      };
+
+      // Add the goal to Firebase
+      const goalId = await addGoal(user.uid, goalData);
+
+      if (goalId) {
+        console.log("Goal created successfully with ID:", goalId);
+
+        // Reset form values
+        setNewGoalName("");
+        setNewGoalAmount("");
+
+        // The goal will be added to the UI via the real-time listener
+      } else {
+        Alert.alert("Error", "Failed to create goal. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error adding goal:", error);
+      Alert.alert("Error", "Failed to create goal. Please try again.");
+    }
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -611,7 +739,38 @@ export default function HomeTab() {
 
         {/* Savings Goals Section */}
         <View style={styles.trendsSectionContainer}>
-          <Text style={styles.sectionTitle}>Savings Goals</Text>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Savings Goals</Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (user) {
+                  setLoadingGoals(true);
+                  fetchUserGoals(user.uid)
+                    .then((goals) => {
+                      if (goals && goals.length > 0) {
+                        setUserGoals(goals as UserGoal[]);
+                        console.log("Manually refreshed goals:", goals.length);
+                      } else {
+                        setUserGoals([]);
+                        console.log("No goals found during manual refresh");
+                      }
+                    })
+                    .catch((error) => {
+                      console.error("Error refreshing goals:", error);
+                      Alert.alert(
+                        "Error",
+                        "Failed to refresh goals. Please try again."
+                      );
+                    })
+                    .finally(() => {
+                      setLoadingGoals(false);
+                    });
+                }
+              }}
+            >
+              <Feather name="refresh-cw" size={20} color="#4C38CD" />
+            </TouchableOpacity>
+          </View>
 
           {loadingGoals ? (
             <View style={styles.loadingContainer}>
@@ -643,22 +802,83 @@ export default function HomeTab() {
               </Text>
               <TouchableOpacity
                 style={styles.addGoalButton}
-                onPress={() => {
-                  // Instead of navigating to a non-existent route, show an alert
-                  console.log("Add goal button pressed");
-                  alert(
-                    "Feature coming soon! You can add goals from the Firebase console for now."
-                  );
-                }}
+                onPress={() => setAddGoalModalVisible(true)}
               >
                 <Text style={styles.addGoalButtonText}>Add a Goal</Text>
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Add Goal button at the bottom if there are already goals */}
+          {userGoals.length > 0 && (
+            <TouchableOpacity
+              style={[
+                styles.addGoalButton,
+                { alignSelf: "center", marginTop: 10 },
+              ]}
+              onPress={() => setAddGoalModalVisible(true)}
+            >
+              <Text style={styles.addGoalButtonText}>Add Another Goal</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Restore Financial Insights Card */}
         <FinancialInsightsCard onViewAll={handleViewAllInsights} />
+
+        {/* Add Goal Modal */}
+        <Modal
+          animationType="slide"
+          transparent={true}
+          visible={addGoalModalVisible}
+          onRequestClose={() => setAddGoalModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalContainer}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Create New Savings Goal</Text>
+
+              <Text style={styles.inputLabel}>Goal Name</Text>
+              <TextInput
+                style={styles.input}
+                value={newGoalName}
+                onChangeText={setNewGoalName}
+                placeholder="e.g., Emergency Fund, New Car"
+              />
+
+              <Text style={styles.inputLabel}>Target Amount ($)</Text>
+              <TextInput
+                style={styles.input}
+                value={newGoalAmount}
+                onChangeText={setNewGoalAmount}
+                placeholder="e.g., 5000"
+                keyboardType="numeric"
+              />
+
+              <View style={styles.modalButtonsRow}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setAddGoalModalVisible(false);
+                    setNewGoalName("");
+                    setNewGoalAmount("");
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.addButton]}
+                  onPress={handleAddGoal}
+                >
+                  <Text style={styles.addButtonText}>Create Goal</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );

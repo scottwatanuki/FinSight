@@ -227,6 +227,9 @@ module.exports = {
   resetBudget,
   resetAllBudgets,
 };
+
+// Test code - commented out to prevent automatic execution
+/*
 const mockGoal = {
   goalName: "Emergency Fund",
   targetAmount: 5000,
@@ -241,4 +244,5 @@ async function runTest() {
   updateGoal(mockUserID, mockGoalID, 300);
 }
 
-runTest();
+// runTest();
+*/
