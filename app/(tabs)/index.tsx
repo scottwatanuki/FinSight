@@ -129,6 +129,27 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     alignItems: "center",
   },
+  viewDropdown: {
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "#E0E0E0",
+    marginBottom: 20,
+},
+
+viewDropdownText: {
+    color: "#3C3ADD",
+    fontWeight: "bold",
+    textAlign: "left",
+},
+
+viewDropdownContainer: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+},
+
+viewDropdownContainerStyle: {
+    width: 150,
+},
   periodSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -240,23 +261,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     lineHeight: 22,
     textAlign: "center",
-  },
-  viewDropdown: {
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    paddingRight: 45,
-    marginLeft: 24,
-  },
-  viewDropdownText: {
-    color: "#3C3ADD",
-    fontWeight: "bold",
-    textAlign: "left",
-  },
-  viewDropdownContainer: {
-    borderWidth: 0,
-  },
-  viewDropdownContainerStyle: {
-    width: 150,
   },
   noGoalsContainer: {
     backgroundColor: "#F8F8FF",
@@ -472,7 +476,7 @@ const styles = StyleSheet.create({
 });
 
 export default function HomeTab() {
-  const [view, setView] = useState("Weekly");
+  const [view, setView] = useState("Monthly");
   const [viewOpen, setViewOpen] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
@@ -670,11 +674,6 @@ export default function HomeTab() {
     // This would navigate to a savings goal detail page
     // router.push(`/savings/goal/${goalId}`);
     console.log("Goal pressed:", goalId);
-  };
-
-  const handleViewAllInsights = () => {
-    // This would navigate to insights page
-    // router.push("/insights");
   };
 
   const userName = userData?.username;
@@ -957,15 +956,15 @@ export default function HomeTab() {
                 bgColor="#E6E6FA"
                 rotation={-90}
               >
-                <Text style={styles.expensesLabel}>Expenses</Text>
+                <Text style={styles.expensesLabel}>Total Expenses</Text>
                 <Text style={styles.expensesAmount}>
                   ${displayData.totalSpent.toLocaleString()}
                 </Text>
                 <Text style={styles.expensesMax}>
-                  Out of $
+                  spent out of $
                   {(typeof displayData.totalBudget === "number" &&
                   !isNaN(displayData.totalBudget)
-                    ? displayData.totalBudget
+                    ? displayData.totalBudget.toFixed(2)
                     : 0
                   ).toLocaleString()}
                 </Text>
