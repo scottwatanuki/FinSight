@@ -1,7 +1,7 @@
-import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
-import { BlurView } from "expo-blur";
-import { StyleSheet, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+const { useBottomTabBarHeight } = require( "@react-navigation/bottom-tabs");
+const { BlurView } = require( "expo-blur");
+const { StyleSheet, View } = require( "react-native");
+const { useSafeAreaInsets } = require( "react-native-safe-area-context");
 
 export default function BlurTabBarBackground() {
   return (

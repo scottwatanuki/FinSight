@@ -1,6 +1,7 @@
-import React from "react";
-import { View, StyleSheet, ViewStyle } from "react-native";
-import Svg, { Circle, G } from "react-native-svg";
+const React = require(  "react");
+const { View, StyleSheet, ViewStyle } = require(  "react-native");
+const Svg = require(  "react-native-svg");
+const { Circle, G } = require(  "react-native-svg");
 
 interface CircularProgressProps {
   percentage: number;

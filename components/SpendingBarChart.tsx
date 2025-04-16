@@ -1,12 +1,13 @@
-import React, { useState } from "react";
-import {
+const React = require("react");
+const { useState } = require( "react");
+const {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   TouchableWithoutFeedback,
-} from "react-native";
-import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
+} = require( "react-native");
+const { IconSymbol, IconSymbolName } = require( "@/components/ui/IconSymbol");
 
 const SpendingBarChart = ({
   data,

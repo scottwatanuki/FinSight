@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import {
+const React = require("react");
+const { useState } = require( "react");
+const {
   View,
   Text,
   StyleSheet,
@@ -8,10 +9,10 @@ import {
   TouchableOpacity,
   Dimensions,
   Image,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { LineChart } from "react-native-chart-kit";
+}  = require(  "react-native");
+const { useRouter }  = require(  "expo-router");
+const { Feather }  = require(  "@expo/vector-icons");
+const { LineChart }  = require(  "react-native-chart-kit");
 
 // Real LineChart component is now imported from react-native-chart-kit
 

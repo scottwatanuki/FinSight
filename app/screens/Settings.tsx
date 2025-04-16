@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import {
+const React = require("react");
+const { useState, useEffect } = require("react");
+const {
   View,
   Text,
   Image,
@@ -7,13 +8,13 @@ import {
   ScrollView,
   StyleSheet,
   SafeAreaView,
-} from "react-native";
-import { useAuth } from "../context/AuthContext";
-import { logoutUser } from "../services/auth";
-import { useNavigation } from "@react-navigation/native";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../../firebase";
-import { Feather } from "@expo/vector-icons";
+} = require("react-native");
+const { useAuth } = require("../context/AuthContext");
+const { logoutUser } = require("../services/auth");
+const { useNavigation } = require("@react-navigation/native");
+const { doc, getDoc } = require("firebase/firestore");
+const { db } = require("../../firebase");
+const { Feather } = require("@expo/vector-icons");
 
 export default function Settings() {
   const { user } = useAuth();

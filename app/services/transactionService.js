@@ -1,5 +1,5 @@
-import { db } from "../../firebase";
-import { doc, collection, addDoc, serverTimestamp } from "firebase/firestore";
+const { db } = require(  "../../firebase");
+const { doc, collection, addDoc, serverTimestamp } = require(  "firebase/firestore");
 
 /**
  * Add a transaction to a user's spending history

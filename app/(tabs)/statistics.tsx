@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from "react";
-import {
+const React = require("react");
+const { useState, useEffect } = require("react");
+const {
     Text,
     View,
     ScrollView,
@@ -10,29 +11,29 @@ import {
     ActivityIndicator,
     SafeAreaView,
     Alert,
-} from "react-native";
-import Modal from "react-native-modal";
-import DropDownPicker from "react-native-dropdown-picker";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { IconSymbol, IconSymbolName } from "@/components/ui/IconSymbol";
-import {
+}  = require( "react-native");
+const Modal  = require( "react-native-modal");
+const DropDownPicker  = require( "react-native-dropdown-picker");
+const DateTimePicker  = require( "@react-native-community/datetimepicker");
+const { IconSymbol, IconSymbolName }  = require( "@/components/ui/IconSymbol");
+const {
     fetchUserBudgetKeys,
     fetchUserBudget,
     fetchUserTransactionsByDate,
-} from "../backend/fetchData";
-import {
+}  = require( "../backend/fetchData");
+const {
     fetchSpendingPerCategoryByDate,
     monthlyMedianSpending,
-} from "../backend/analyzeMonthlySpending";
-import {
+}  = require( "../backend/analyzeMonthlySpending");
+const {
     setBudget,
     addSpending,
     deleteTransaction,
     resetBudget,
     resetAllBudgets,
-} from "../backend/pushData";
-import { Timestamp } from "firebase/firestore";
-import { useAuth } from "../context/AuthContext";
+}  = require( "../backend/pushData");
+const { Timestamp } = require("firebase/firestore");
+const { useAuth }  = require( "../context/AuthContext");
 
 const getCurrentMonthDates = () => {
     const now = new Date(); // Get the current date

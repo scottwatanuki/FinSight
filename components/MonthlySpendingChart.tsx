@@ -1,6 +1,6 @@
 // app/components/MonthlySpendingChart.jsx
-import React from "react";
-import { View, Text, StyleSheet, Dimensions } from "react-native";
+const React = require( "react");
+const { View, Text, StyleSheet, Dimensions } = require( "react-native");
 
 const MonthlySpendingChart = ({
   data = [],

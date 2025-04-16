@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import {
+const React = require( "react");
+const { useState } = require( "react"); 
+const {
   View,
   Text,
   StyleSheet,
@@ -8,10 +9,10 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { useAuth } from "../context/AuthContext";
-import { Feather } from "@expo/vector-icons";
+} require("react-native");
+const { useRouter } = require(  "expo-router");
+const { useAuth } = require(  "../context/AuthContext");
+const { Feather } = require(  "@expo/vector-icons");
 
 interface CardDetails {
   number: string;

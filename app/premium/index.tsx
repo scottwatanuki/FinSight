@@ -1,5 +1,5 @@
-import React from "react";
-import {
+const React  = require( "react");
+const {
   View,
   Text,
   StyleSheet,
@@ -7,10 +7,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
-import { useAuth } from "../context/AuthContext";
+}  = require( "react-native");
+const { useRouter }  = require( "expo-router");
+const { Feather }  = require( "@expo/vector-icons");
+const { useAuth }  = require( "../context/AuthContext");
 
 export default function PremiumPlan() {
   const router = useRouter();

@@ -1,6 +1,6 @@
 // app/services/setupUserProfile.js
-import { db } from "../../firebase";
-import { doc, setDoc, serverTimestamp, collection } from "firebase/firestore";
+const { db } = require(  "../../firebase");
+const { doc, setDoc, serverTimestamp, collection } = require(  "firebase/firestore");
 
 /**
  * Setup a new user profile with payment method after registration

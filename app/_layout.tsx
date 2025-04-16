@@ -1,5 +1,5 @@
-import { Stack } from "expo-router";
-import { AuthProvider } from "./context/AuthContext";
+const { Stack }  = require( "expo-router");
+const { AuthProvider }  = require( "./context/AuthContext");
 
 export default function RootLayout() {
   return (

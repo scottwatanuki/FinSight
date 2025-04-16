@@ -1,5 +1,5 @@
-import { SymbolView, SymbolViewProps, SymbolWeight } from 'expo-symbols';
-import { StyleProp, ViewStyle } from 'react-native';
+const { SymbolView, SymbolViewProps, SymbolWeight } = require( 'expo-symbols');
+const { StyleProp, ViewStyle } = require( 'react-native');
 
 export function IconSymbol({
   name,

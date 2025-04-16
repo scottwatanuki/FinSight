@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import {
+const React = require("react");
+const { useState, useEffect, useRef } = require("react");
+const {
     View,
     Text,
     Image,
@@ -12,24 +13,23 @@ import {
     Modal,
     Pressable,
     Button,
-} from "react-native";
-import { Feather, AntDesign, FontAwesome6 } from "@expo/vector-icons";
-import { useAuth } from "../context/AuthContext";
-import { logoutUser } from "../services/auth";
-import { useRouter } from "expo-router";
-import { doc, getDoc, collection, getDocs } from "firebase/firestore";
-import { db } from "../../firebase";
-import * as ImagePicker from "expo-image-picker";
-import { uploadProfilePicture } from "../services/userProfile";
-import * as FileSystem from "expo-file-system";
-import {
-
+} = require("react-native");
+const { Feather, AntDesign, FontAwesome6 } = require("@expo/vector-icons");
+const { useAuth } = require("../context/AuthContext");
+const { logoutUser } = require("../services/auth");
+const { useRouter } = require("expo-router");
+const { doc, getDoc, collection, getDocs } = require("firebase/firestore");
+const { db } = require("../../firebase");
+const ImagePicker = require("expo-image-picker");
+const { uploadProfilePicture } = require("../services/userProfile");
+const FileSystem = require("expo-file-system");
+const {
     Camera,
     CameraType,
     CameraView,
     useCameraPermissions,
-} from "expo-camera";
-import { setDoc } from "firebase/firestore";
+} = require("expo-camera");
+const { setDoc } = require("firebase/firestore");
 
 
 // -----------------------------------------------------

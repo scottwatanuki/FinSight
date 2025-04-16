@@ -1,14 +1,14 @@
-import React from "react";
-import {
+const React = require( "react");
+const {
   View,
   Text,
   StyleSheet,
   SafeAreaView,
   ScrollView,
   TouchableOpacity,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { Feather } from "@expo/vector-icons";
+} = require( "react-native");
+const { useRouter } = require( "expo-router");
+const { Feather } = require( "@expo/vector-icons");
 
 export default function AdvancedReports() {
   const router = useRouter();

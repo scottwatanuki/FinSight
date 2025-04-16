@@ -1,6 +1,6 @@
-import React from "react";
-import Signup from "./screens/Signup";
-import { SafeAreaView, StyleSheet } from "react-native";
+const React  = require( "react");
+const Signup  = require( "./screens/Signup");
+const { SafeAreaView, StyleSheet }  = require( "react-native");
 
 export default function SignupScreen() {
   return (

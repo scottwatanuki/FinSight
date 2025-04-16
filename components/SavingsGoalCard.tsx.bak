@@ -1,8 +1,8 @@
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { useAuth } from "../app/context/AuthContext";
-import { updateGoal } from "../app/backend/pushData";
+const React = require( "react");
+const { View, Text, StyleSheet, TouchableOpacity } = require( "react-native");
+const { Feather } = require( "@expo/vector-icons");
+const { useAuth } = require( "../app/context/AuthContext");
+const { updateGoal } = require( "../app/backend/pushData");
 
 interface SavingsGoalCardProps {
   title?: string;

@@ -1,7 +1,7 @@
 // app/components/FinancialInsightsCard.jsx
-import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import { Feather } from "@expo/vector-icons";
+const React = require(  "react");
+const { View, Text, StyleSheet, TouchableOpacity } = require(  "react-native");
+const { Feather } = require(  "@expo/vector-icons");
 
 const FinancialInsightsCard = ({ insights = [], onViewAll }) => {
   // Default insights if none provided

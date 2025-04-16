@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import {
+const React = require( "react");
+const { useState } = require( "react");
+const {
   View,
   Text,
   StyleSheet,
@@ -10,9 +11,9 @@ import {
   Platform,
   Alert,
   ScrollView,
-} from "react-native";
-import { Feather } from "@expo/vector-icons";
-import { useAuth } from "../app/context/AuthContext";
+} = require( "react-native");
+const { Feather } = require( "@expo/vector-icons");
+const { useAuth } = require( "../app/context/AuthContext");
 const {
   updateGoal,
   deleteGoal,
