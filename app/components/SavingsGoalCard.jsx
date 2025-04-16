@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,9 +10,11 @@ import {
   Platform,
   Alert,
   ScrollView,
+  Pressable,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { useAuth } from "../context/AuthContext";
+import DateTimePicker from "@react-native-community/datetimepicker";
 const {
   updateGoal,
   deleteGoal,
@@ -28,6 +30,7 @@ const SavingsGoalCard = ({
   goalId,
   isCompleted = false,
   onGoalDeleted,
+  onGoalUpdated,
 }) => {
   const { user } = useAuth();
   const [addFundsModalVisible, setAddFundsModalVisible] = useState(false);
@@ -41,6 +44,106 @@ const SavingsGoalCard = ({
     targetAmount.toString()
   );
   const [editedDeadline, setEditedDeadline] = useState(deadline);
+  const [displayDeadline, setDisplayDeadline] = useState(deadline);
+
+  // Update local state when props change
+  useEffect(() => {
+    setEditedTitle(title);
+    setEditedTargetAmount(targetAmount.toString());
+    setEditedDeadline(deadline);
+    setDisplayDeadline(deadline);
+  }, [title, targetAmount, deadline]);
+
+  // Format date for display
+  const formatDate = (date) => {
+    const months = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const month = months[date.getMonth()];
+    const day = date.getDate();
+    const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
+
+  // Date parser - convert string date to Date object
+  const parseDeadline = (deadlineStr) => {
+    // Check if it's in the new format "MMM DD, YYYY"
+    const fullDateRegex = /^([A-Za-z]{3})\s+(\d{1,2}),\s+(\d{4})$/;
+    let match = deadlineStr.match(fullDateRegex);
+
+    if (match) {
+      const monthStr = match[1];
+      const day = parseInt(match[2]);
+      const year = parseInt(match[3]);
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const monthIndex = months.indexOf(monthStr);
+      if (monthIndex !== -1 && !isNaN(day) && !isNaN(year)) {
+        return new Date(year, monthIndex, day);
+      }
+    }
+
+    // Check if it's in the old format "MMM YYYY"
+    const oldFormatRegex = /^([A-Za-z]{3})\s+(\d{4})$/;
+    match = deadlineStr.match(oldFormatRegex);
+
+    if (match) {
+      const monthStr = match[1];
+      const year = parseInt(match[2]);
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const monthIndex = months.indexOf(monthStr);
+      if (monthIndex !== -1 && !isNaN(year)) {
+        return new Date(year, monthIndex, 1);
+      }
+    }
+
+    // Default to current date + 1 year if parsing fails
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+    return defaultDate;
+  };
+
+  // Date picker state
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [deadlineDate, setDeadlineDate] = useState(() => {
+    return parseDeadline(deadline);
+  });
 
   // Calculate progress percentage
   const progressPercentage = (currentAmount / targetAmount) * 100;
@@ -65,6 +168,25 @@ const SavingsGoalCard = ({
     maximumFractionDigits: 0,
   });
 
+  // Handle date change
+  const onDateChange = (event, selectedDate) => {
+    setShowDatePicker(Platform.OS === "ios");
+    if (selectedDate) {
+      setDeadlineDate(selectedDate);
+      setEditedDeadline(formatDate(selectedDate));
+    }
+  };
+
+  // Show date picker based on platform
+  const showDatePickerHandler = () => {
+    if (Platform.OS === "android") {
+      setShowDatePicker(true);
+    } else {
+      // On iOS, the picker is shown inside the view
+      setShowDatePicker(true);
+    }
+  };
+
   // Show modal to enter custom amount
   const showAddFundsModal = () => {
     setAddFundsModalVisible(true);
@@ -76,6 +198,10 @@ const SavingsGoalCard = ({
     setEditedTitle(title);
     setEditedTargetAmount(targetAmount.toString());
     setEditedDeadline(deadline);
+
+    // Also reset the deadline date object
+    setDeadlineDate(parseDeadline(deadline));
+
     setEditMode(false);
     setManageModalVisible(true);
   };
@@ -162,11 +288,31 @@ const SavingsGoalCard = ({
     }
 
     try {
-      await updateGoalDetails(user.uid, goalId, {
+      // Create updated goal data
+      const updatedGoalData = {
         goalName: editedTitle,
         targetAmount: newTargetAmount,
         deadline: editedDeadline,
-      });
+        deadlineTimestamp: deadlineDate.getTime(), // Add timestamp for better handling
+      };
+
+      // Update in Firebase
+      await updateGoalDetails(user.uid, goalId, updatedGoalData);
+
+      // Update display deadline to match edited deadline
+      setDisplayDeadline(editedDeadline);
+
+      // Notify parent component about the update if callback exists
+      if (onGoalUpdated) {
+        onGoalUpdated(goalId, {
+          goalName: editedTitle,
+          targetAmount: newTargetAmount,
+          deadline: editedDeadline,
+          // Include other important fields
+          currentAmount,
+          isCompleted,
+        });
+      }
 
       setEditMode(false);
       setManageModalVisible(false);
@@ -182,7 +328,7 @@ const SavingsGoalCard = ({
       <View style={styles.header}>
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{title}</Text>
-          <Text style={styles.deadline}>Goal by {deadline}</Text>
+          <Text style={styles.deadline}>Goal by {displayDeadline}</Text>
         </View>
         <Feather name="chevron-right" size={24} color="#CCCCCC" />
       </View>
@@ -325,12 +471,51 @@ const SavingsGoalCard = ({
 
                   <View style={styles.formField}>
                     <Text style={styles.formLabel}>Deadline</Text>
-                    <TextInput
-                      style={styles.textInput}
-                      value={editedDeadline}
-                      onChangeText={setEditedDeadline}
-                      placeholder="E.g., Dec 2025"
-                    />
+                    <Pressable
+                      onPress={showDatePickerHandler}
+                      style={styles.datePickerButton}
+                    >
+                      <Text style={styles.dateText}>{editedDeadline}</Text>
+                      <Feather name="calendar" size={20} color="#555" />
+                    </Pressable>
+
+                    {showDatePicker && (
+                      <>
+                        {Platform.OS === "ios" && (
+                          <View style={styles.iosPickerContainer}>
+                            <View style={styles.iosPickerHeader}>
+                              <TouchableOpacity
+                                onPress={() => setShowDatePicker(false)}
+                              >
+                                <Text style={styles.iosPickerDoneText}>
+                                  Done
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                            <DateTimePicker
+                              testID="dateTimePicker"
+                              value={deadlineDate}
+                              mode="date"
+                              display="spinner"
+                              onChange={onDateChange}
+                              minimumDate={new Date()}
+                              style={styles.iosDatePicker}
+                            />
+                          </View>
+                        )}
+
+                        {Platform.OS === "android" && (
+                          <DateTimePicker
+                            testID="dateTimePicker"
+                            value={deadlineDate}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                            minimumDate={new Date()}
+                          />
+                        )}
+                      </>
+                    )}
                   </View>
 
                   <View style={styles.editButtonContainer}>
@@ -380,7 +565,9 @@ const SavingsGoalCard = ({
 
                   <View style={styles.goalDetailItem}>
                     <Text style={styles.goalDetailLabel}>Deadline:</Text>
-                    <Text style={styles.goalDetailValue}>{deadline}</Text>
+                    <Text style={styles.goalDetailValue}>
+                      {displayDeadline}
+                    </Text>
                   </View>
 
                   <View style={styles.goalDetailItem}>
@@ -729,6 +916,45 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     marginTop: 20,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#FAFAFA",
+  },
+  dateText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  iosPickerContainer: {
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  iosPickerHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  iosPickerDoneText: {
+    color: "#4C38CD",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  iosDatePicker: {
+    height: 200,
+    width: "100%",
   },
 });
 
