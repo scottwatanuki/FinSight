@@ -1,19 +1,25 @@
+import React from "react";
 import { Redirect } from "expo-router";
 import { useAuth } from "./context/AuthContext";
 import { View, ActivityIndicator, StyleSheet } from "react-native";
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { TouchableOpacity } from "react-native";
+
+// Restore Financial Insights Card
+import GoalModal from "../components/GoalModal";
 
 export default function Index() {
   const { user, loading } = useAuth();
   const [initializing, setInitializing] = useState(true);
   const [cachedAuth, setCachedAuth] = useState(null);
+  const [showGoalModal, setShowGoalModal] = useState(false);
 
   useEffect(() => {
     const checkCachedAuth = async () => {
       try {
         const cachedUser = await AsyncStorage.getItem("@user");
-        
+
         if (cachedUser) {
           setCachedAuth(JSON.parse(cachedUser));
           console.log("Using cached auth data for initial routing");
@@ -45,11 +51,22 @@ export default function Index() {
   }
 
   const isAuthenticated = user || cachedAuth;
-  
-  return isAuthenticated ? (
-    <Redirect href="/(tabs)" />
-  ) : (
-    <Redirect href="/login" />
+
+  // Add Goal Modal
+  return (
+    <>
+      <GoalModal
+        animationType="slide"
+        transparent={true}
+        visible={showGoalModal}
+        onRequestClose={() => setShowGoalModal(false)}
+      />
+      {isAuthenticated ? (
+        <Redirect href="/(tabs)" />
+      ) : (
+        <Redirect href="/login" />
+      )}
+    </>
   );
 }
 
