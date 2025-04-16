@@ -1,17 +1,17 @@
-import React from "react";
-import Login from "./screens/Login";
-import { SafeAreaView, StyleSheet } from "react-native";
+const React = require("react");
+const Login = require("./screens/Login");
+const { SafeAreaView, StyleSheet } = require("react-native");
 
 export default function LoginScreen() {
-  return (
-    <SafeAreaView style={styles.container}>
-      <Login />
-    </SafeAreaView>
-  );
+    return (
+        <SafeAreaView style={styles.container}>
+            <Login />
+        </SafeAreaView>
+    );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
+    container: {
+        flex: 1,
+    },
 });
