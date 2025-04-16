@@ -9,6 +9,14 @@ import {
   ScrollView,
   ActivityIndicator,
   FlatList,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Alert,
+  Animated,
+  Dimensions,
+  Pressable,
 } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { useRouter } from "expo-router";
@@ -30,6 +38,7 @@ import {
   fetchUserGoals,
   fetchGoalByID,
 } from "../backend/fetchData";
+import { addGoal } from "../backend/pushData";
 
 import CircularProgress from "../../components/CircularProgress";
 import SpendingBarChart from "../../components/SpendingBarChart";
@@ -37,6 +46,8 @@ import MonthlySpendingChart from "../../components/MonthlySpendingChart";
 import SavingsGoalCard from "../components/SavingsGoalCard";
 import FinancialInsightsCard from "../../components/FinancialInsightsCard";
 import { useSpendingData } from "../../hooks/useSpendingData";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { format } from "date-fns";
 
 // Define interfaces for better type safety
 interface UserGoal {
@@ -44,6 +55,8 @@ interface UserGoal {
   goalName: string;
   currentAmount: number;
   targetAmount: number;
+  deadline?: string;
+  deadlineTimestamp?: number;
   isCompleted: boolean;
 }
 
@@ -52,6 +65,8 @@ interface SpendingDataState {
   data: any | null;
   error: Error | null;
 }
+
+const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
@@ -114,6 +129,27 @@ const styles = StyleSheet.create({
     marginBottom: 30,
     alignItems: "center",
   },
+  viewDropdown: {
+    borderWidth: 1,
+    backgroundColor: "transparent",
+    borderColor: "#E0E0E0",
+    marginBottom: 20,
+},
+
+viewDropdownText: {
+    color: "#3C3ADD",
+    fontWeight: "bold",
+    textAlign: "left",
+},
+
+viewDropdownContainer: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+},
+
+viewDropdownContainerStyle: {
+    width: 150,
+},
   periodSelector: {
     flexDirection: "row",
     alignItems: "center",
@@ -226,54 +262,221 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     textAlign: "center",
   },
-  viewDropdown: {
-    borderWidth: 0,
-    backgroundColor: "transparent",
-    paddingRight: 45,
-    marginLeft: 24,
-  },
-  viewDropdownText: {
-    color: "#3C3ADD",
-    fontWeight: "bold",
-    textAlign: "left",
-  },
-  viewDropdownContainer: {
-    borderWidth: 0,
-  },
-  viewDropdownContainerStyle: {
-    width: 150,
-  },
   noGoalsContainer: {
-    backgroundColor: "white",
-    borderRadius: 20,
-    padding: 20,
-    marginVertical: 10,
+    backgroundColor: "#F8F8FF",
+    borderRadius: 15,
+    padding: 30,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    justifyContent: "center",
   },
   noGoalsText: {
     fontSize: 16,
-    color: "#888",
-    marginBottom: 15,
+    color: "#666",
+    marginBottom: 20,
+    textAlign: "center",
   },
   addGoalButton: {
     backgroundColor: "#4C38CD",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 25,
   },
   addGoalButtonText: {
     color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  floatingAddButton: {
+    position: "relative",
+    alignSelf: "center",
+    marginTop: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#4C38CD",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  centeredView: {
+    flex: 1,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+  },
+  modalView: {
+    width: "100%",
+    backgroundColor: "white",
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    padding: 30,
+    paddingTop: 20,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -3,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    maxHeight: "90%",
+  },
+  modalDragHandle: {
+    width: 40,
+    height: 5,
+    backgroundColor: "#E0E0E0",
+    borderRadius: 2.5,
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 25,
+    textAlign: "center",
+    color: "#4C38CD",
+  },
+  inputGroup: {
+    marginBottom: 24,
+  },
+  inputLabel: {
+    fontSize: 16,
+    marginBottom: 10,
+    color: "#333",
+    fontWeight: "600",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+    backgroundColor: "#FAFAFA",
+  },
+  amountInputContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#FAFAFA",
+  },
+  dollarSign: {
+    fontSize: 18,
+    marginRight: 8,
+    color: "#333",
+    fontWeight: "600",
+  },
+  amountInput: {
+    flex: 1,
+    fontSize: 16,
+  },
+  modalButtonsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: "center",
+    marginHorizontal: 8,
+  },
+  cancelButton: {
+    backgroundColor: "#F5F5F5",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+  },
+  addButton: {
+    backgroundColor: "#4C38CD",
+  },
+  disabledButton: {
+    backgroundColor: "#A8A8A8",
+  },
+  cancelButtonText: {
+    color: "#333",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  addButtonText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  modalScrollView: {
+    maxHeight: 400,
+  },
+  datePickerButton: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    backgroundColor: "#FAFAFA",
+  },
+  dateText: {
+    fontSize: 16,
+    color: "#333",
+  },
+  iosPickerContainer: {
+    backgroundColor: "white",
+    borderTopWidth: 1,
+    borderTopColor: "#E0E0E0",
+    marginTop: 10,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 10,
+  },
+  iosPickerHeader: {
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E0E0E0",
+  },
+  iosPickerDoneText: {
+    color: "#4C38CD",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  iosDatePicker: {
+    height: 200,
+    width: "100%",
+  },
+  selectedDateContainer: {
+    backgroundColor: "#F5F5FF",
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  selectedDateLabel: {
+    fontSize: 14,
+    color: "#666",
+    fontWeight: "500",
+  },
+  selectedDateValue: {
+    fontSize: 16,
+    color: "#4C38CD",
     fontWeight: "600",
   },
 });
 
 export default function HomeTab() {
-  const [view, setView] = useState("Weekly");
+  const [view, setView] = useState("Monthly");
   const [viewOpen, setViewOpen] = useState(false);
   const { user } = useAuth();
   const router = useRouter();
@@ -288,6 +491,16 @@ export default function HomeTab() {
   const [isListening, setIsListening] = useState(false);
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
   const [loadingGoals, setLoadingGoals] = useState(true);
+  // Add new state for the add goal modal
+  const [addGoalModalVisible, setAddGoalModalVisible] = useState(false);
+  const [newGoalName, setNewGoalName] = useState("");
+  const [newGoalAmount, setNewGoalAmount] = useState("");
+  const [newGoalDeadline, setNewGoalDeadline] = useState("Dec 2025");
+  const [deadlineDate, setDeadlineDate] = useState(new Date(2025, 11, 31)); // Default to Dec 31, 2025
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isAddingGoal, setIsAddingGoal] = useState(false);
+  // Animation value for modal
+  const [modalAnimation] = useState(new Animated.Value(0));
   // Use our custom hook to get spending data
   const spendingDataHook = useSpendingData(user?.uid, selectedPeriod);
 
@@ -333,37 +546,34 @@ export default function HomeTab() {
   useEffect(() => {
     if (!user) return;
 
-    // Listen for goals changes
+    console.log("Setting up database listeners for real-time updates");
+
+    // Enhanced goals listener
     const goalsRef = collection(db, "goals", user.uid, "settings");
     const goalsUnsubscribe = onSnapshot(
       goalsRef,
       (querySnapshot) => {
-        const goals: UserGoal[] = [];
+        const updatedGoals: UserGoal[] = [];
         querySnapshot.forEach((doc) => {
-          goals.push({
+          const goalData = doc.data();
+          updatedGoals.push({
             id: doc.id,
-            ...doc.data(),
-          } as UserGoal);
+            goalName: goalData.goalName,
+            currentAmount: goalData.currentAmount,
+            targetAmount: goalData.targetAmount,
+            deadline: goalData.deadline || "Dec 2025", // Ensure deadline is captured
+            deadlineTimestamp: goalData.deadlineTimestamp, // Store timestamp if available
+            isCompleted: goalData.isCompleted,
+          });
         });
-        setUserGoals(goals);
-        console.log("Goals updated in real-time:", goals);
+
+        console.log("Goals updated in real-time:", updatedGoals);
+        setUserGoals(updatedGoals);
       },
       (error) => {
         console.error("Error listening to goals changes:", error);
       }
     );
-
-    // Cleanup function
-    return () => {
-      goalsUnsubscribe();
-    };
-  }, [user]);
-
-  // Set up real-time listeners for database changes
-  useEffect(() => {
-    if (!user) return;
-
-    console.log("Setting up database listeners for real-time updates");
 
     // Listen for budget changes
     const budgetRef = doc(db, "budgets", user.uid);
@@ -419,13 +629,14 @@ export default function HomeTab() {
       transactionUnsubscribes.push(unsubscribe);
     });
 
-    // Cleanup function to unsubscribe from all listeners
+    // Cleanup function
     return () => {
       console.log("Cleaning up database listeners");
+      goalsUnsubscribe();
       budgetUnsubscribe();
       transactionUnsubscribes.forEach((unsubscribe) => unsubscribe());
     };
-  }, [user]); // Remove isListening dependency to ensure listeners are always set up
+  }, [user]);
 
   // Function to fetch data based on the current view
   const fetchData = async () => {
@@ -450,7 +661,6 @@ export default function HomeTab() {
       });
     }
   };
-  
 
   // Initial data load and when view changes
   useEffect(() => {
@@ -464,11 +674,6 @@ export default function HomeTab() {
     // This would navigate to a savings goal detail page
     // router.push(`/savings/goal/${goalId}`);
     console.log("Goal pressed:", goalId);
-  };
-
-  const handleViewAllInsights = () => {
-    // This would navigate to insights page
-    // router.push("/insights");
   };
 
   const userName = userData?.username;
@@ -540,6 +745,172 @@ export default function HomeTab() {
     }
   };
 
+  // Format date for display - replace with a more reliable method
+  const formatDate = (date: Date): string => {
+    try {
+      // Use date-fns to format the date consistently
+      return format(date, "MMM d, yyyy");
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      // Fallback manual formatting
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const month = months[date.getMonth()];
+      const day = date.getDate();
+      const year = date.getFullYear();
+      return `${month} ${day}, ${year}`;
+    }
+  };
+
+  // Show modal with animation
+  const showAddGoalModal = () => {
+    setNewGoalName("");
+    setNewGoalAmount("");
+    const defaultDate = new Date();
+    defaultDate.setFullYear(defaultDate.getFullYear() + 1);
+    setDeadlineDate(defaultDate); // Reset to default date (1 year from now)
+    setNewGoalDeadline(formatDate(defaultDate));
+    setAddGoalModalVisible(true);
+    Animated.timing(modalAnimation, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  };
+
+  // Handle date change with better error handling
+  const onDateChange = (event: any, selectedDate?: Date) => {
+    console.log("Date selected:", selectedDate); // Debug log
+
+    setShowDatePicker(Platform.OS === "ios");
+
+    if (selectedDate) {
+      // Ensure date is valid
+      if (!isNaN(selectedDate.getTime())) {
+        setDeadlineDate(selectedDate);
+        const formattedDate = formatDate(selectedDate);
+        console.log("Formatted date:", formattedDate); // Debug log
+        setNewGoalDeadline(formattedDate);
+      } else {
+        console.error("Invalid date selected");
+      }
+    }
+  };
+
+  // Show date picker with platform-specific handling
+  const showDatePickerHandler = () => {
+    console.log("Opening date picker");
+    setShowDatePicker(true);
+  };
+
+  // Handle adding a goal with formatted date
+  const handleAddGoal = async () => {
+    if (!user) return;
+
+    // Validate inputs
+    if (!newGoalName.trim()) {
+      Alert.alert("Invalid Name", "Goal name cannot be empty");
+      return;
+    }
+
+    const targetAmount = parseFloat(newGoalAmount);
+    if (isNaN(targetAmount) || targetAmount <= 0) {
+      Alert.alert("Invalid Amount", "Please enter a valid target amount");
+      return;
+    }
+
+    setIsAddingGoal(true);
+
+    try {
+      // Prepare the goal data with formatted deadline
+      const goalData = {
+        goalName: newGoalName,
+        targetAmount: targetAmount,
+        currentAmount: 0,
+        deadline: newGoalDeadline,
+        deadlineTimestamp: deadlineDate.getTime(), // Store timestamp for sorting and calculations
+        isCompleted: false,
+      };
+
+      // Add the goal to Firebase
+      const goalId = await addGoal(user.uid, goalData);
+
+      if (goalId) {
+        // Add the new goal to the state with its ID
+        setUserGoals([
+          ...userGoals,
+          {
+            id: goalId,
+            goalName: newGoalName,
+            targetAmount: targetAmount,
+            currentAmount: 0,
+            deadline: newGoalDeadline,
+            isCompleted: false,
+          },
+        ]);
+
+        // Reset form and close modal
+        setNewGoalName("");
+        setNewGoalAmount("");
+        hideAddGoalModal();
+        Alert.alert("Success", "Goal added successfully!");
+      } else {
+        Alert.alert("Error", "Failed to add goal. Please try again.");
+      }
+    } catch (error) {
+      console.error("Error adding goal:", error);
+      Alert.alert("Error", "Failed to add goal. Please try again.");
+    } finally {
+      setIsAddingGoal(false);
+    }
+  };
+
+  // Hide modal with animation
+  const hideAddGoalModal = () => {
+    Animated.timing(modalAnimation, {
+      toValue: 0,
+      duration: 250,
+      useNativeDriver: true,
+    }).start(() => {
+      setAddGoalModalVisible(false);
+    });
+  };
+
+  // Animation styles
+  const modalTranslateY = modalAnimation.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height, 0],
+  });
+
+  // Function to handle goal updates from SavingsGoalCard
+  const handleGoalUpdated = (
+    goalId: string,
+    updatedGoal: Partial<UserGoal>
+  ) => {
+    console.log(`Goal updated: ${goalId}`, updatedGoal);
+    // Update the userGoals state with the updated goal details
+    setUserGoals(
+      userGoals.map((goal) => {
+        if (goal.id === goalId) {
+          return { ...goal, ...updatedGoal };
+        }
+        return goal;
+      })
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -585,15 +956,15 @@ export default function HomeTab() {
                 bgColor="#E6E6FA"
                 rotation={-90}
               >
-                <Text style={styles.expensesLabel}>Expenses</Text>
+                <Text style={styles.expensesLabel}>Total Expenses</Text>
                 <Text style={styles.expensesAmount}>
                   ${displayData.totalSpent.toLocaleString()}
                 </Text>
                 <Text style={styles.expensesMax}>
-                  Out of $
+                  spent out of $
                   {(typeof displayData.totalBudget === "number" &&
                   !isNaN(displayData.totalBudget)
-                    ? displayData.totalBudget
+                    ? displayData.totalBudget.toFixed(2)
                     : 0
                   ).toLocaleString()}
                 </Text>
@@ -626,7 +997,7 @@ export default function HomeTab() {
                 title={goal.goalName}
                 currentAmount={goal.currentAmount}
                 targetAmount={goal.targetAmount}
-                deadline="Dec 2025" // This could be added to the goal data in the future
+                deadline={goal.deadline || "Dec 2025"} // Use goal.deadline, fall back to default
                 isCompleted={goal.isCompleted}
                 onPress={() => handleSavingsGoalPress(goal.id)}
                 onGoalDeleted={(deletedGoalId: string) => {
@@ -635,6 +1006,7 @@ export default function HomeTab() {
                     prevGoals.filter((g) => g.id !== deletedGoalId)
                   );
                 }}
+                onGoalUpdated={handleGoalUpdated} // Add the new callback
               />
             ))
           ) : (
@@ -644,19 +1016,167 @@ export default function HomeTab() {
               </Text>
               <TouchableOpacity
                 style={styles.addGoalButton}
-                onPress={() => {
-                  // Instead of navigating to a non-existent route, show an alert
-                  console.log("Add goal button pressed");
-                  alert(
-                    "Feature coming soon! You can add goals from the Firebase console for now."
-                  );
-                }}
+                onPress={showAddGoalModal}
               >
                 <Text style={styles.addGoalButtonText}>Add a Goal</Text>
               </TouchableOpacity>
             </View>
           )}
+
+          {/* Add a "+" button for adding goals if there are already goals */}
+          {userGoals.length > 0 && (
+            <TouchableOpacity
+              style={styles.floatingAddButton}
+              onPress={showAddGoalModal}
+            >
+              <Feather name="plus" size={24} color="white" />
+            </TouchableOpacity>
+          )}
         </View>
+
+        {/* Add Goal Modal */}
+        <Modal
+          animationType="none"
+          transparent={true}
+          visible={addGoalModalVisible}
+          onRequestClose={hideAddGoalModal}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.centeredView}
+          >
+            <Animated.View
+              style={[
+                styles.modalView,
+                { transform: [{ translateY: modalTranslateY }] },
+              ]}
+            >
+              <View style={styles.modalDragHandle} />
+              <Text style={styles.modalTitle}>Create New Goal</Text>
+
+              <ScrollView
+                style={styles.modalScrollView}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>
+                    What are you saving for?
+                  </Text>
+                  <TextInput
+                    style={styles.input}
+                    value={newGoalName}
+                    onChangeText={setNewGoalName}
+                    placeholder="e.g., New Car, Vacation, Emergency Fund"
+                    placeholderTextColor="#999"
+                    autoFocus
+                  />
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>How much do you need?</Text>
+                  <View style={styles.amountInputContainer}>
+                    <Text style={styles.dollarSign}>$</Text>
+                    <TextInput
+                      style={styles.amountInput}
+                      value={newGoalAmount}
+                      onChangeText={setNewGoalAmount}
+                      keyboardType="numeric"
+                      placeholder="0"
+                      placeholderTextColor="#999"
+                    />
+                  </View>
+                </View>
+
+                <View style={styles.inputGroup}>
+                  <Text style={styles.inputLabel}>Target date</Text>
+                  <Pressable
+                    onPress={showDatePickerHandler}
+                    style={styles.datePickerButton}
+                  >
+                    <Text style={styles.dateText}>{newGoalDeadline}</Text>
+                    <Feather name="calendar" size={20} color="#555" />
+                  </Pressable>
+
+                  {/* Show currently selected date in a more visible format */}
+                  {showDatePicker && (
+                    <View style={styles.selectedDateContainer}>
+                      <Text style={styles.selectedDateLabel}>
+                        Selected date:
+                      </Text>
+                      <Text style={styles.selectedDateValue}>
+                        {formatDate(deadlineDate)}
+                      </Text>
+                    </View>
+                  )}
+
+                  {showDatePicker && (
+                    <>
+                      {Platform.OS === "ios" ? (
+                        <View style={styles.iosPickerContainer}>
+                          <View style={styles.iosPickerHeader}>
+                            <TouchableOpacity
+                              onPress={() => setShowDatePicker(false)}
+                            >
+                              <Text style={styles.iosPickerDoneText}>Done</Text>
+                            </TouchableOpacity>
+                          </View>
+                          <DateTimePicker
+                            testID="dateTimePicker"
+                            value={deadlineDate}
+                            mode="date"
+                            display="spinner"
+                            onChange={onDateChange}
+                            minimumDate={new Date()}
+                            style={styles.iosDatePicker}
+                            textColor="#000000"
+                            themeVariant="light"
+                          />
+                        </View>
+                      ) : (
+                        <DateTimePicker
+                          testID="dateTimePicker"
+                          value={deadlineDate}
+                          mode="date"
+                          is24Hour={true}
+                          display="default"
+                          onChange={onDateChange}
+                          minimumDate={new Date()}
+                          themeVariant="light"
+                          textColor="#000000"
+                        />
+                      )}
+                    </>
+                  )}
+                </View>
+              </ScrollView>
+
+              <View style={styles.modalButtonsContainer}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={hideAddGoalModal}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    styles.addButton,
+                    isAddingGoal && styles.disabledButton,
+                  ]}
+                  onPress={handleAddGoal}
+                  disabled={isAddingGoal}
+                >
+                  {isAddingGoal ? (
+                    <ActivityIndicator size="small" color="white" />
+                  ) : (
+                    <Text style={styles.addButtonText}>Create Goal</Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+            </Animated.View>
+          </KeyboardAvoidingView>
+        </Modal>
       </ScrollView>
     </SafeAreaView>
   );

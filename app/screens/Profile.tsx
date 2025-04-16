@@ -160,10 +160,22 @@ async function extractCardNumberFromImage(uri: string) {
         const expiryMatch = ocrText.match(/\b(0[1-9]|1[0-2])\/?([0-9]{2})\b/);
         console.log("cardNumberMatch", cardNumberMatch);
         console.log("expiryMatch", expiryMatch);
-
+        
+        let cardTypeMatch = "Unknown";
+        const firstDigit = cardNumberMatch[0].charAt(0);
+        if (firstDigit === "3") {
+            cardTypeMatch = "American Express";
+        } else if (firstDigit === "4") {
+            cardTypeMatch = "Visa";
+        } else if (firstDigit === "5") {
+            cardTypeMatch = "Mastercard";
+        } else if (firstDigit === "6") {
+            cardTypeMatch = "Discover";
+        }
         return {
             cardNumber: cardNumberMatch?.[0]?.replace(/[^\d]/g, "") || null,
             expiry: expiryMatch ? `${expiryMatch[1]}/${expiryMatch[2]}` : null,
+            cardType: cardTypeMatch,
         };
     } catch (err) {
         console.error("❌ OCR Error:", err);
@@ -348,8 +360,8 @@ export default function Profile() {
                 "paymentMethods",
                 cardID
             );
-
-                // Determine the card type based on the first digit of the card number
+    
+            // Determine the card type based on the first digit of the card number
             let cardType = "Unknown";
             const firstDigit = result.cardNumber.charAt(0);
             if (firstDigit === "3") {
@@ -361,8 +373,8 @@ export default function Profile() {
             } else if (firstDigit === "6") {
                 cardType = "Discover";
             }
-
-            // Update the card data—here we update the "lastFour" and add an "expiry" field.
+    
+            // Update the card data—here we update the "lastFour", "expiry", and "cardType" fields.
             setCardData((prev) => ({
                 ...prev,
                 cardNumber: result.cardNumber,
@@ -370,7 +382,7 @@ export default function Profile() {
                 expiry: result.expiry,
                 cardType: cardType,
             }));
-
+    
             const cardInfo = {
                 cardType,
                 lastFour,
@@ -378,7 +390,7 @@ export default function Profile() {
                 expiry: result.expiry,
                 name: user.email?.split("@")[0] || "User",
             };
-
+    
             Alert.alert("Card Scanned", "Card details updated successfully.");
             try {
                 await setDoc(cardRef, cardInfo);
@@ -469,7 +481,7 @@ export default function Profile() {
                 )}
               </View>
               <View style={styles.cardRightSection}>
-                <Text style={styles.visaText}>VISA</Text>
+                <Text style={styles.visaText}>{cardData.cardType}</Text>
               </View>
             </View>
           </View>
