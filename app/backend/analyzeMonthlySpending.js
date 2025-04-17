@@ -45,28 +45,28 @@ async function fetchSpendingPerCategoryByDate(
     budgetKeys
 ) {
     try {
-        console.log("fetching spending per category....");
+        //console.log("fetching spending per category....");
         let spendingPerCategory = {}; // "shopping": {total: 250, transactions: []}
         spendingPerCategory["total"] = 0;
-        console.log("list of budgets:", budgetKeys);
+        //console.log("list of budgets:", budgetKeys);
         for (const category of budgetKeys) {
-            console.log(
-                "in fetchSpendingPerCategoryByDate, adding up expenses for ",
-                category
-            );
+            //console.log(
+            //     "in fetchSpendingPerCategoryByDate, adding up expenses for ",
+            //     category
+            // );
             const transactions = await fetchSpendingHistoryByCategory(
                 userID,
                 category,
                 startDate,
                 endDate
             );
-            console.log(
-                "fetchSpendingPerCategoryByDate's record of transactions",
-                transactions
-            );
+            // console.log(
+            //     "fetchSpendingPerCategoryByDate's record of transactions",
+            //     transactions
+            // );
             let total_amount_spent = 0;
             if (transactions.length == 0) {
-                console.log("length is 0");
+                // console.log("length is 0");
                 total_amount_spent += 0;
             } else {
                 for (const trans of transactions) {
@@ -76,17 +76,17 @@ async function fetchSpendingPerCategoryByDate(
             spendingPerCategory[category] = { total: total_amount_spent };
             spendingPerCategory[category]["transactions"] = transactions;
             spendingPerCategory["total"] += total_amount_spent;
-            console.log(
-                `num of transactions: ${spendingPerCategory[category]["transactions"].length}`
-            );
-            console.log(
-                `${userID} spent ${spendingPerCategory[category]} on ${category}`
-            );
+            // console.log(
+            //     `num of transactions: ${spendingPerCategory[category]["transactions"].length}`
+            // );
+            // console.log(
+            //     `${userID} spent ${spendingPerCategory[category]} on ${category}`
+            // );
         }
-        console.log(
-            "in fetchSpendingPerCategoryByDate, spendingPerCategory is",
-            spendingPerCategory
-        );
+        // console.log(
+        //     "in fetchSpendingPerCategoryByDate, spendingPerCategory is",
+        //     spendingPerCategory
+        // );
         return spendingPerCategory;
     } catch (error) {
         console.log(
@@ -126,10 +126,10 @@ function organizeTransactionsByMonthAndCategory(transactions) {
         spendingData[category].months[monthKey].spent += amount;
     }
 
-    console.log(
-        "in organizeTransactionsByMonthAndCategory, DONE organizing all transaction data:",
-        spendingData
-    );
+    // console.log(
+    //     "in organizeTransactionsByMonthAndCategory, DONE organizing all transaction data:",
+    //     spendingData
+    // );
     return spendingData;
 }
 
@@ -165,7 +165,7 @@ async function compareBudgetVsSpendingByDate(
             budgetKeys
         );
         let budgets = await fetchUserBudget(userID);
-        console.log("budgets", budgets);
+        // console.log("budgets", budgets);
         let remainingBudget = {};
         for (const category of categories) {
             if (!budgets[category] || !spendingBreakdown[category]) {
@@ -175,8 +175,8 @@ async function compareBudgetVsSpendingByDate(
             remainingBudget[category] =
                 spent - spendingBreakdown[category]["total"];
         }
-        console.log(`${userID}'s remaining budget:`);
-        console.log(remainingBudget);
+        // console.log(`${userID}'s remaining budget:`);
+        // console.log(remainingBudget);
         return remainingBudget;
     } catch {
         console.log(
@@ -224,7 +224,7 @@ async function calculateTotalSavings(userID) {
             }
         }
 
-        console.log("from analyzemonthlyspending, total savings", savings);
+        // console.log("from analyzemonthlyspending, total savings", savings);
         return savings;
     } catch (error) {
         console.error("Error calculating total savings:", error);
@@ -262,8 +262,8 @@ async function monthlyMedianSpending(userID) {
                 monthsUsed: spendingValues.length,
             };
 
-            console.log(`${userID}'s predicted spending for next month:`);
-            console.log(predictions);
+            // console.log(`${userID}'s predicted spending for next month:`);
+            // console.log(predictions);
         }
         return predictions;
     } catch (error) {
@@ -299,8 +299,8 @@ async function fetchTotalSpendingPerCategory(userID) {
         const spendingData =
             organizeTransactionsByMonthAndCategory(transactions);
 
-        console.log(`${userID}'s total spending per category:`);
-        console.log(spendingData);
+        // console.log(`${userID}'s total spending per category:`);
+        // console.log(spendingData);
 
         return spendingData;
     } catch (error) {
@@ -361,10 +361,10 @@ async function groupMonthlyMedianSpending(userID) {
             const months = Number(data.monthsUsed) || 0;
             const historicalTotal = Number(data.historicalData?.total) || 0;
 
-            console.log(
-                "curr predicted amount",
-                grouped_predictions[groupName]
-            );
+            // console.log(
+            //     "curr predicted amount",
+            //     grouped_predictions[groupName]
+            // );
             grouped_predictions[groupName].totalPredicted += amount;
             grouped_predictions[groupName].totalHistorical += historicalTotal;
             grouped_predictions[groupName].totalMonths += months;
@@ -386,10 +386,10 @@ async function groupMonthlyMedianSpending(userID) {
                     ? groupData.totalHistorical / groupData.count
                     : 0;
         }
-        console.log(
-            `${userID}'s consolidated predicted spending for next month:`
-        );
-        console.log(grouped_predictions);
+        // console.log(
+        //     `${userID}'s consolidated predicted spending for next month:`
+        // );
+        // console.log(grouped_predictions);
         return grouped_predictions;
     } catch (error) {
         console.error("Error analyzing monthly spending:", error);

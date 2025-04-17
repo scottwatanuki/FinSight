@@ -33,6 +33,7 @@ import {
 } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
+import { logButtonClick, logViewChange } from "../../firebaseWrapper";
 
 const getCurrentMonthDates = () => {
     const now = new Date(); // Get the current date
@@ -95,6 +96,11 @@ export default function Statistics() {
         if (selectedDate) {
             setSpendingDate(selectedDate);
         }
+    };
+
+    const handleViewChange = (newView: string) => {
+        setView(newView);
+        logViewChange(newView);
     };
 
     const [isResetModalVisible, setResetModalVisible] = useState(false);
@@ -177,9 +183,9 @@ export default function Statistics() {
                         budgetKeys //fetches current categories the user has transactions in
                     );
                 if (budgetKeys && userBudgets && spendingPerCategory) {
-                    console.log(
-                        "All required data exists, proceeding with mapping"
-                    );
+                    // console.log(
+                    //     "All required data exists, proceeding with mapping"
+                    // );
                     const newBudgets = budgetKeys.map((key) => {
                         return {
                             category: key,
@@ -191,11 +197,11 @@ export default function Statistics() {
                     });
                     setBudgets(newBudgets);
                 } else {
-                    console.log("no budgets set");
+                    // console.log("no budgets set");
                     setBudgets([]);
                 }
-                console.log("new budget", budgets);
-                console.log("the date:", monthEndDate);
+                // console.log("new budget", budgets);
+                // console.log("the date:", monthEndDate);
                 const fetchPredictedSpending = async () => {
                     try {
                         const fetchedData = await monthlyMedianSpending(userID);
@@ -214,28 +220,28 @@ export default function Statistics() {
                 const predictedMonthlySpending = await monthlyMedianSpending(
                     userID
                 );
-                console.log(
-                    "predicted spending amount",
-                    predictedMonthlySpending
-                );
-                console.log(
-                    "Date range:",
-                    monthStartDate.toDate(),
-                    "-",
-                    monthEndDate.toDate()
-                );
-                console.log("Today's date:", new Date());
+                // console.log(
+                //     "predicted spending amount",
+                //     predictedMonthlySpending
+                // );
+                // console.log(
+                //     "Date range:",
+                //     monthStartDate.toDate(),
+                //     "-",
+                //     monthEndDate.toDate()
+                // );
+                // console.log("Today's date:", new Date());
                 const transactions = await fetchUserTransactionsByDate(
                     userID,
                     monthStartDate,
                     monthEndDate,
                     budgetKeys
                 );
-                console.log("transactions inside DB:", transactions);
-                console.log(
-                    "from statistics, total transactons:",
-                    transactions.length
-                );
+                // console.log("transactions inside DB:", transactions);
+                // console.log(
+                //     "from statistics, total transactons:",
+                //     transactions.length
+                // );
                 if (transactions) {
                     const newHistory = transactions.map((transaction) => ({
                         id: transaction.id,
@@ -245,7 +251,7 @@ export default function Statistics() {
                         date: transaction["date"].toDate().toLocaleDateString(),
                     }));
                     setHistory(newHistory);
-                    console.log("updated history:", history);
+                    // console.log("updated history:", history);
                 }
             } catch (error) {
                 console.error("budget retrieval failed: ", error);
@@ -275,7 +281,7 @@ export default function Statistics() {
         } catch (error) {
             console.error("Error adding spending data:", error);
         }
-        console.log("added spending data");
+        // console.log("added spending data");
         // Reset the form fields
         setSpendingAmount("");
         setSpendingCategory("");
@@ -283,7 +289,7 @@ export default function Statistics() {
         setSpendingDate(new Date());
         // toggleSpendingModal();
         setRefreshData((prev) => !prev);
-        console.log("refreshing");
+        // console.log("refreshing");
     };
 
     const toggleModal = () => {
@@ -327,20 +333,21 @@ export default function Statistics() {
         return history.filter((item) => item.category === filterCategory);
     };
 
-    const handleAddBudget = () => {
+    const handleAddBudget = async () => {
         const budgetData = {
             category: category,
             amount: amount,
             frequency: frequency,
         };
         setBudget(budgetData, userID);
-        console.log({ category, frequency, amount });
+        // console.log({ category, frequency, amount });
         // Reset the form fields
         setCategory("");
         setFrequency("");
         setAmount("");
         toggleModal();
         setRefreshData((prev) => !prev);
+        await logButtonClick("add_budget");
     };
 
     const getFilteredBudgets = () => {
@@ -366,7 +373,8 @@ export default function Statistics() {
                             amount: budget.amount / 30,
                             limit: budget.limit / 30,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount / 365,
@@ -379,8 +387,8 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount *7,
-                            limit: budget.limit *7,
+                            amount: budget.amount * 7,
+                            limit: budget.limit * 7,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
@@ -394,7 +402,8 @@ export default function Statistics() {
                             amount: budget.amount / 4,
                             limit: budget.limit / 4,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount / 52,
@@ -407,8 +416,8 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount/30,
-                            limit: budget.limit/30
+                            amount: budget.amount / 30,
+                            limit: budget.limit / 30,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
@@ -422,11 +431,12 @@ export default function Statistics() {
                             amount: budget.amount,
                             limit: budget.limit,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
-                            amount: budget.amount *12,
-                            limit: budget.limit *12,
+                            amount: budget.amount * 12,
+                            limit: budget.limit * 12,
                         };
                     }
                 });
@@ -435,8 +445,8 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount/365,
-                            limit: budget.limit/365,
+                            amount: budget.amount / 365,
+                            limit: budget.limit / 365,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
@@ -450,7 +460,8 @@ export default function Statistics() {
                             amount: budget.amount / 12,
                             limit: budget.limit / 12,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount,
@@ -512,7 +523,7 @@ export default function Statistics() {
                             { label: "Yearly", value: "Yearly" },
                         ]}
                         setOpen={setViewOpen}
-                        setValue={setView}
+                        setValue={handleViewChange}
                         style={styles.viewDropdown}
                         textStyle={styles.viewDropdownText}
                         dropDownContainerStyle={styles.viewDropdownContainer}
@@ -529,7 +540,8 @@ export default function Statistics() {
                     getFilteredBudgets().map((budget, index) => (
                         // <View key={index} style={styles.card}>
                         <TouchableOpacity
-                            key={index}
+                            // key={index}
+                            key={`${budget.category}-${budget.amount}-${index}`}
                             style={styles.card}
                             onLongPress={() => toggleResetModal(budget)}
                         >
@@ -599,7 +611,11 @@ export default function Statistics() {
                 showsVerticalScrollIndicator={true}
             >
                 {getFilteredHistory().map((item) => (
-                    <View key={item.id} style={{ marginBottom: 16 }}>
+                    // <View key={item.id} style={{ marginBottom: 16 }}>
+                    <View
+                        key={`${item.id}-${item.date}-${item.amount}`}
+                        style={{ marginBottom: 16 }}
+                    >
                         <TouchableOpacity
                             style={styles.historyCard}
                             onLongPress={() =>

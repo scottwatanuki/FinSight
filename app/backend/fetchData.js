@@ -31,7 +31,7 @@ const monthEndDate = Timestamp.fromDate(new Date("2025-03-31"));
 
 async function fetchUserBudgetKeys(userID) {
     try {
-        console.log("fetching user budget keys...");
+        // console.log("fetching user budget keys...");
         const budgetRef = collection(db, "budgets", userID, "settings");
         const budgetSnap = await getDocs(budgetRef);
         if (!budgetSnap.empty) {
@@ -39,7 +39,7 @@ async function fetchUserBudgetKeys(userID) {
             budgetSnap.forEach((doc) => {
                 keys.push(doc.data().category);
             });
-            console.log("User has established these categories: ", keys);
+            // console.log("User has established these categories: ", keys);
             return keys;
         } else {
             console.log("doc doesn't exist");
@@ -50,20 +50,6 @@ async function fetchUserBudgetKeys(userID) {
     }
 }
 
-// async function fetchAllBudgets() {
-//     try {
-//         console.log("Fetching data...");
-//         const querySnapshot = await getDocs(collection(db, "budgets")); // all docs in budgets
-//         let budgets = [];
-//         querySnapshot.forEach((doc) => {
-//             budgets.push({ id: doc.id, ...doc.data() });
-//         });
-//         console.log("budgets:", budgets);
-//         return budgets;
-//     } catch (error) {
-//         console.error("Error fetching document:", error);
-//     }
-// }
 /**
  *
  * @param {*} userID
@@ -73,7 +59,7 @@ async function fetchUserBudgetKeys(userID) {
  */
 async function fetchUserBudget(userID) {
     try {
-        console.log(`Fetching budget for user: ${userID}`);
+        // console.log(`Fetching budget for user: ${userID}`);
 
         const budgetRef = collection(db, "budgets", userID, "settings"); //enter collections
         const budgetSnap = await getDocs(budgetRef);
@@ -86,7 +72,7 @@ async function fetchUserBudget(userID) {
         budgetSnap.forEach((doc) => {
             budgetData[doc.data().category] = doc.data();
         });
-        console.log("from fetchData.js, fetched user budget:", budgetData);
+        // console.log("from fetchData.js, fetched user budget:", budgetData);
         return budgetData;
     } catch (error) {
         console.error("Error fetching user budget:", error);
@@ -101,13 +87,13 @@ async function fetchUserTransactionsByDate(
     budgetKeys
 ) {
     try {
-        console.log(
-            `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
-        );
-        console.log(
-            "fetching transactions using these categories:",
-            budgetKeys
-        );
+        // console.log(
+        //     `Fetching transactions for user: ${userID} during ${startDate}-${endDate}`
+        // );
+        // console.log(
+        //     "fetching transactions using these categories:",
+        //     budgetKeys
+        // );
         const userRef = doc(db, "spending_history", userID);
         let transactions = [];
         if (!budgetKeys) {
@@ -125,9 +111,9 @@ async function fetchUserTransactionsByDate(
                 transactions.push({ id: doc.id, category, ...doc.data() });
             });
         }
-        console.log(
-            `all transactions during ${startDate}-${endDate}: ${transactions.length}`
-        );
+        // console.log(
+        //     `all transactions during ${startDate}-${endDate}: ${transactions.length}`
+        // );
         return transactions;
     } catch (error) {
         console.error("error getting transactions:", error);
@@ -137,7 +123,7 @@ async function fetchUserTransactionsByDate(
 
 async function fetchAllUserTransactions(userID) {
     try {
-        console.log(`Fetching transactions for user: ${userID}`);
+        // console.log(`Fetching transactions for user: ${userID}`);
 
         const userRef = doc(db, "spending_history", userID);
         let transactions = [];
@@ -149,7 +135,7 @@ async function fetchAllUserTransactions(userID) {
                 transactions.push({ id: doc.id, category, ...doc.data() });
             });
         }
-        console.log("all transactions:", transactions);
+        // console.log("all transactions:", transactions);
         return transactions;
     } catch (error) {
         console.log(
@@ -167,7 +153,7 @@ async function fetchSpendingHistoryByCategory(
     endDate
 ) {
     try {
-        console.log(`fetch spending history for ${userID} in ${category}:`);
+        // console.log(`fetch spending history for ${userID} in ${category}:`);
         const categoryCollectionRef = collection(
             db,
             "spending_history",
@@ -181,15 +167,15 @@ async function fetchSpendingHistoryByCategory(
         );
         const querySnapshot = await getDocs(filterDates);
         const transactions = [];
-        console.log(`Number of documents in ${category}:`, querySnapshot.size);
-        querySnapshot.forEach((doc) => {
-            console.log("examine doc", doc);
-            console.log("Document ID:", doc.id);
-            console.log("Document Data:", doc.data());
-        });
+        // console.log(`Number of documents in ${category}:`, querySnapshot.size);
+        // querySnapshot.forEach((doc) => {
+        //     console.log("examine doc", doc);
+        //     console.log("Document ID:", doc.id);
+        //     console.log("Document Data:", doc.data());
+        // });
 
         querySnapshot.forEach((doc) => {
-            console.log("examine doc", doc);
+            // console.log("examine doc", doc);
             const transactionData = doc.data();
             transactions.push({
                 id: doc.id,
@@ -199,9 +185,9 @@ async function fetchSpendingHistoryByCategory(
             });
         });
 
-        console.log(
-            `DONE! Fetched transactions in ${category} for user ${userID}:`
-        );
+        // console.log(
+        //     `DONE! Fetched transactions in ${category} for user ${userID}:`
+        // );
         return transactions;
     } catch (error) {
         console.error("Error fetching spending history:", error);
@@ -269,9 +255,9 @@ function getDateRange(period) {
             );
     }
 
-    console.log(
-        `Date range for ${period}: ${startDate.toISOString()} to ${endDate.toISOString()}`
-    );
+    // console.log(
+    //     `Date range for ${period}: ${startDate.toISOString()} to ${endDate.toISOString()}`
+    // );
     return {
         startDate: Timestamp.fromDate(startDate),
         endDate: Timestamp.fromDate(endDate),
@@ -280,9 +266,9 @@ function getDateRange(period) {
 
 async function fetchSpendingDataByPeriod(userID, period) {
     try {
-        console.log(
-            `Fetching spending data for user ${userID} with period ${period}`
-        );
+        // console.log(
+        //     `Fetching spending data for user ${userID} with period ${period}`
+        // );
         const { startDate, endDate } = getDateRange(period);
         const budget = await fetchUserBudget(userID);
         const transactions = await fetchUserTransactionsByDate(
@@ -291,9 +277,9 @@ async function fetchSpendingDataByPeriod(userID, period) {
             endDate
         );
 
-        console.log(
-            `Found ${transactions.length} transactions for period ${period}`
-        );
+        // console.log(
+        //     `Found ${transactions.length} transactions for period ${period}`
+        // );
 
         // Process budget data for the selected period
         let modifiedBudget = { ...budget };
@@ -331,8 +317,8 @@ async function fetchSpendingDataByPeriod(userID, period) {
             totalBudget += amount;
         });
 
-        console.log("MODIFIED BUDGET:");
-        console.log(modifiedBudget);
+        // console.log("MODIFIED BUDGET:");
+        // console.log(modifiedBudget);
 
         // Ensure we have data for all budget categories, even if there are no transactions
         const categories = Object.keys(modifiedBudget || {}).map(
@@ -354,7 +340,7 @@ async function fetchSpendingDataByPeriod(userID, period) {
                     : 0,
         };
 
-        console.log("Processed spending data:", result);
+        // console.log("Processed spending data:", result);
         return result;
     } catch (error) {
         console.error("Error fetching spending data by period:", error);

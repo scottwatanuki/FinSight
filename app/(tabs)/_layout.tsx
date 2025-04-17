@@ -7,52 +7,64 @@ import { IconSymbol } from "@/components/ui/IconSymbol";
 import { CustomTabBar } from "@/components/CustomTabBar";
 import { Colors } from "@/constants/Colors";
 import { useColorScheme } from "@/hooks/useColorScheme";
+import { logTabChange } from "../../firebaseWrapper";
 
 export default function TabsLayout() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const colorScheme = useColorScheme();
+    const { user } = useAuth();
+    const router = useRouter();
+    const colorScheme = useColorScheme();
 
-  useEffect(() => {
-    if (!user) {
-      router.replace("/login");
-    }
-  }, [user]);
+    useEffect(() => {
+        if (!user) {
+            router.replace("/login");
+        }
+    }, [user]);
 
-  return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-      }}
-      tabBar={(props) => <CustomTabBar {...props} />}
-    >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: "Home",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="home" size={size} color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="statistics"
-        options={{
-          title: "Budgets",
-          tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="creditcard.fill" color={color} />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, size }) => (
-            <Feather name="user" size={size} color={color} />
-          ),
-        }}
-      />
-    </Tabs>
-  );
+    return (
+        <Tabs
+            screenOptions={{
+                headerShown: false,
+            }}
+            tabBar={(props) => <CustomTabBar {...props} />}
+            screenListeners={{
+                //track tab changes
+                tabPress: (e) => {
+                    const targetTab = e.target?.split("-")[0] || "unknown";
+                    logTabChange(targetTab);
+                },
+            }}
+        >
+            <Tabs.Screen
+                name="index"
+                options={{
+                    title: "Home",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="home" size={size} color={color} />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="statistics"
+                options={{
+                    title: "Budgets",
+                    tabBarIcon: ({ color }) => (
+                        <IconSymbol
+                            size={28}
+                            name="creditcard.fill"
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
+                name="profile"
+                options={{
+                    title: "Profile",
+                    tabBarIcon: ({ color, size }) => (
+                        <Feather name="user" size={size} color={color} />
+                    ),
+                }}
+            />
+        </Tabs>
+    );
 }
