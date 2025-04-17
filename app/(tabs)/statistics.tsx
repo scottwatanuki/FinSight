@@ -33,6 +33,9 @@ import {
 } from "../backend/pushData";
 import { Timestamp } from "firebase/firestore";
 import { useAuth } from "../context/AuthContext";
+import analytics, { logEvent, getAnalytics} from '@react-native-firebase/analytics';
+
+const analytics = getAnalytics();
 
 const getCurrentMonthDates = () => {
     const now = new Date(); // Get the current date
@@ -341,6 +344,11 @@ export default function Statistics() {
         setAmount("");
         toggleModal();
         setRefreshData((prev) => !prev);
+        analytics.logEvent('add button', {
+            category: category,
+            frequency: frequency,
+            amount: amount,
+          });
     };
 
     const getFilteredBudgets = () => {
