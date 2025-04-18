@@ -782,11 +782,12 @@ export default function Statistics() {
                     />
                     <Text style={styles.budgetPredictionText}>
                         {predictedMonthlySpending?.[category]?.predictedAmount
-                            ? `Predicted spending for ${category}:\n $${predictedMonthlySpending[
+                            ? `Predicted monthly spending for ${category}:\n $${predictedMonthlySpending[
                                   category
                               ].predictedAmount.toFixed(2)}`
                             : ""}
                     </Text>
+
                     <TouchableOpacity
                         style={styles.addButton}
                         onPress={handleAddBudget}

@@ -481,7 +481,7 @@ export default function HomeTab() {
     const [viewOpen, setViewOpen] = useState(false);
     const { user } = useAuth();
     const router = useRouter();
-    const [selectedPeriod, setSelectedPeriod] = useState("M"); // W, M, Y
+    const [selectedPeriod, setSelectedPeriod] = useState("Monthly"); // W, M, Y
     const [userData, setUserData] = useState<DocumentData | null>(null);
     const [activeTab, setActiveTab] = useState(0); // For paging between different visualizations
     const [spendingData, setSpendingData] = useState<SpendingDataState>({
@@ -934,6 +934,11 @@ export default function HomeTab() {
         );
     };
 
+    const handlePeriodChange = (view) => {
+        setView(view);
+        setSelectedPeriod(view);
+    };
+
     return (
         <SafeAreaView style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -963,7 +968,7 @@ export default function HomeTab() {
                             { label: "Yearly", value: "Yearly" },
                         ]}
                         setOpen={setViewOpen}
-                        setValue={setView}
+                        setValue={handlePeriodChange}
                         style={styles.viewDropdown}
                         textStyle={styles.viewDropdownText}
                         dropDownContainerStyle={styles.viewDropdownContainer}
