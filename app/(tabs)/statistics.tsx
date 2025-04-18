@@ -215,7 +215,7 @@ export default function Statistics() {
                     userID
                 );
                 console.log(
-                    "predicted spending amount",
+                    "predicted monthly spending amount",
                     predictedMonthlySpending
                 );
                 console.log(
@@ -251,7 +251,7 @@ export default function Statistics() {
                 console.error("budget retrieval failed: ", error);
                 setBudgets([]);
             } finally {
-                setIsLoading(false); // Set loading to false after data is fetched
+                setIsLoading(false);
             }
         };
         fetchBudgets();
@@ -366,7 +366,8 @@ export default function Statistics() {
                             amount: budget.amount / 30,
                             limit: budget.limit / 30,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount / 365,
@@ -379,8 +380,8 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount *7,
-                            limit: budget.limit *7,
+                            amount: budget.amount * 7,
+                            limit: budget.limit * 7,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
@@ -394,7 +395,8 @@ export default function Statistics() {
                             amount: budget.amount / 4,
                             limit: budget.limit / 4,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount / 52,
@@ -407,14 +409,14 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount/30,
-                            limit: budget.limit/30
+                            amount: budget.amount * 30,
+                            limit: budget.limit * 30,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
                             ...budget,
-                            amount: budget.amount / 4,
-                            limit: budget.limit / 4,
+                            amount: budget.amount * 4,
+                            limit: budget.limit * 4,
                         };
                     } else if (budget.frequency === "Monthly") {
                         return {
@@ -422,11 +424,12 @@ export default function Statistics() {
                             amount: budget.amount,
                             limit: budget.limit,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
-                            amount: budget.amount *12,
-                            limit: budget.limit *12,
+                            amount: budget.amount / 12,
+                            limit: budget.limit / 12,
                         };
                     }
                 });
@@ -435,22 +438,23 @@ export default function Statistics() {
                     if (budget.frequency === "Daily") {
                         return {
                             ...budget,
-                            amount: budget.amount/365,
-                            limit: budget.limit/365,
+                            amount: budget.amount * 365,
+                            limit: budget.limit * 365,
                         };
                     } else if (budget.frequency === "Weekly") {
                         return {
                             ...budget,
-                            amount: budget.amount / 52,
-                            limit: budget.limit / 52,
+                            amount: budget.amount * 52,
+                            limit: budget.limit * 52,
                         };
                     } else if (budget.frequency === "Monthly") {
                         return {
                             ...budget,
-                            amount: budget.amount / 12,
-                            limit: budget.limit / 12,
+                            amount: budget.amount * 12,
+                            limit: budget.limit * 12,
                         };
-                    } else { // Yearly budget
+                    } else {
+                        // Yearly budget
                         return {
                             ...budget,
                             amount: budget.amount,
