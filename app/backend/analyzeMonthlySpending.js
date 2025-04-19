@@ -308,6 +308,7 @@ async function fetchTotalSpendingPerCategory(userID) {
         return null;
     }
 }
+
 /**
  * 
  * @param {*} userID 
