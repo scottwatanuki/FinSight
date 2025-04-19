@@ -781,11 +781,31 @@ export default function Statistics() {
                         returnKeyType="done"
                     />
                     <Text style={styles.budgetPredictionText}>
-                        {predictedMonthlySpending?.[category]?.predictedAmount
-                            ? `Predicted monthly spending for ${category}:\n $${predictedMonthlySpending[
-                                  category
-                              ].predictedAmount.toFixed(2)}`
-                            : ""}
+                        {category && frequency && predictedMonthlySpending?.[category]?.predictedAmount
+                            ? (() => {
+                                const monthlyAmount =
+                                predictedMonthlySpending[category].predictedAmount;
+
+                                // Calculate the amount based on the selected frequency
+                                let adjustedAmount = monthlyAmount;
+                                let frequencyText = "monthly";
+
+                                if (frequency === "Daily") {
+                                adjustedAmount = monthlyAmount / 30; // Approximate daily spending
+                                frequencyText = "daily";
+                                } else if (frequency === "Weekly") {
+                                adjustedAmount = monthlyAmount / 4; // Approximate weekly spending
+                                frequencyText = "weekly";
+                                } else if (frequency === "Yearly") {
+                                adjustedAmount = monthlyAmount * 12; // Approximate yearly spending
+                                frequencyText = "yearly";
+                                }
+
+                                return `Predicted ${frequencyText} spending for ${category}:\n $${adjustedAmount.toFixed(
+                                2
+                                )}`;
+                            })()
+                            : "Select a category and frequency to see predictions."}
                     </Text>
 
                     <TouchableOpacity
